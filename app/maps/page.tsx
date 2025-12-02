@@ -22,7 +22,12 @@ import {
   Heart,
   Loader2,
   AlertTriangle,
-  MapPin,
+  Pill,
+  Brush,
+  Users,
+  DollarSign,
+  Armchair,
+  UtensilsCrossed,
 } from "lucide-react"
 
 const MapComponent = dynamic(() => import("@/components/map-component"), {
@@ -35,27 +40,27 @@ const MapComponent = dynamic(() => import("@/components/map-component"), {
 })
 
 const damageCategories = [
-  { id: "houses", label: "Houses", icon: Home, color: "#ef4444" },
-  { id: "worship", label: "Worship Places", icon: Church, color: "#8b5cf6" },
-  { id: "shops", label: "Shops", icon: Store, color: "#f97316" },
-  { id: "vehicles", label: "Vehicles", icon: Car, color: "#06b6d4" },
-  { id: "schools", label: "Schools", icon: GraduationCap, color: "#eab308" },
-  { id: "roads", label: "Roads", icon: Route, color: "#64748b" },
-  { id: "electricity", label: "Electricity", icon: Zap, color: "#facc15" },
-  { id: "water", label: "Water", icon: Droplets, color: "#3b82f6" },
-  { id: "hospitals", label: "Hospitals", icon: Stethoscope, color: "#ec4899" },
-  { id: "telecom", label: "Telecom", icon: Wifi, color: "#14b8a6" },
+  { id: "houses", label: "Houses", icon: Home, iconName: "Home", color: "#ef4444" },
+  { id: "worship", label: "Worship Places", icon: Church, iconName: "Church", color: "#8b5cf6" },
+  { id: "shops", label: "Shops", icon: Store, iconName: "Store", color: "#f97316" },
+  { id: "vehicles", label: "Vehicles", icon: Car, iconName: "Car", color: "#06b6d4" },
+  { id: "schools", label: "Schools", icon: GraduationCap, iconName: "GraduationCap", color: "#eab308" },
+  { id: "roads", label: "Roads", icon: Route, iconName: "Route", color: "#64748b" },
+  { id: "electricity", label: "Electricity", icon: Zap, iconName: "Zap", color: "#facc15" },
+  { id: "water", label: "Water", icon: Droplets, iconName: "Droplets", color: "#3b82f6" },
+  { id: "hospitals", label: "Hospitals", icon: Stethoscope, iconName: "Stethoscope", color: "#ec4899" },
+  { id: "telecom", label: "Telecom", icon: Wifi, iconName: "Wifi", color: "#14b8a6" },
 ]
 
 const donorCategories = [
-  { id: "medical", label: "Medical", color: "#22c55e" },
-  { id: "cleaning", label: "Cleaning", color: "#22c55e" },
-  { id: "volunteers", label: "Volunteers", color: "#22c55e" },
-  { id: "funds", label: "Funds", color: "#22c55e" },
-  { id: "electricity", label: "Electricity Support", color: "#22c55e" },
-  { id: "water", label: "Water Support", color: "#22c55e" },
-  { id: "furniture", label: "Furniture", color: "#22c55e" },
-  { id: "utensils", label: "Utensils", color: "#22c55e" },
+  { id: "medical", label: "Medical", icon: Pill, iconName: "Pill", color: "#22c55e" },
+  { id: "cleaning", label: "Cleaning", icon: Brush, iconName: "Brush", color: "#22c55e" },
+  { id: "volunteers", label: "Volunteers", icon: Users, iconName: "Users", color: "#22c55e" },
+  { id: "funds", label: "Funds", icon: DollarSign, iconName: "DollarSign", color: "#22c55e" },
+  { id: "electricity", label: "Electricity Support", icon: Zap, iconName: "Zap", color: "#22c55e" },
+  { id: "water", label: "Water Support", icon: Droplets, iconName: "Droplets", color: "#22c55e" },
+  { id: "furniture", label: "Furniture", icon: Armchair, iconName: "Armchair", color: "#22c55e" },
+  { id: "utensils", label: "Utensils", icon: UtensilsCrossed, iconName: "UtensilsCrossed", color: "#22c55e" },
 ]
 
 export default function MapsPage() {
@@ -74,7 +79,13 @@ export default function MapsPage() {
   }
 
   // Prepare markers for the map
-  const markers: Array<{ position: [number, number]; popup: string; color: string }> = []
+  const markers: Array<{ 
+    position: [number, number]; 
+    popup: string; 
+    color: string;
+    iconName: string;
+    type: 'damage' | 'support';
+  }> = []
 
   if (showDamageReports) {
     damageReports
@@ -92,6 +103,8 @@ export default function MapsPage() {
             </div>
           `,
           color: category?.color || "#ef4444",
+          iconName: category?.iconName || 'Home',
+          type: 'damage',
         })
       })
   }
@@ -100,6 +113,7 @@ export default function MapsPage() {
     donorOffers
       .filter((o) => o.coordinates && selectedDonorCategories.includes(o.category))
       .forEach((offer) => {
+        const category = donorCategories.find((c) => c.id === offer.category)
         markers.push({
           position: [offer.coordinates!.lat, offer.coordinates!.lng],
           popup: `
@@ -111,6 +125,8 @@ export default function MapsPage() {
             </div>
           `,
           color: "#22c55e",
+          iconName: category?.iconName || 'Heart',
+          type: 'support',
         })
       })
   }
@@ -133,32 +149,12 @@ export default function MapsPage() {
         <div className="grid gap-6 lg:grid-cols-4">
           {/* Filters Sidebar */}
           <div className="space-y-4">
-            {/* Legend Stats */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Map Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            {/* Damage Reports */}
+            <Card className="bg-card border-border border-destructive/20">
+              <CardHeader className="pb-3 bg-destructive/10">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Damage Reports</span>
-                  <Badge variant="destructive">{damageCount}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Support Offers</span>
-                  <Badge className="bg-success text-success-foreground">{donorCount}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Damage Reports Filter */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
                     Damage Reports
                   </CardTitle>
                   <Checkbox
@@ -178,12 +174,12 @@ export default function MapsPage() {
                           checked={selectedDamageCategories.includes(category.id)}
                           onCheckedChange={() => toggleDamageCategory(category.id)}
                         />
-                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
+                        
                         <Label
                           htmlFor={`damage-${category.id}`}
                           className="text-sm text-foreground cursor-pointer flex items-center gap-1"
                         >
-                          <Icon className="h-3.5 w-3.5" />
+                          <Icon className="h-3.5 w-3.5 text-destructive" />
                           {category.label}
                         </Label>
                       </div>
@@ -193,12 +189,12 @@ export default function MapsPage() {
               )}
             </Card>
 
-            {/* Donor Offers Filter */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
+            {/* Support Offers */}
+            <Card className="bg-card border-border border-success/20">
+              <CardHeader className="pb-3 bg-success/10">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-success" />
+                  <CardTitle className="text-base flex items-center gap-2 text-success">
+                    <Heart className="h-4 w-4" />
                     Support Offers
                   </CardTitle>
                   <Checkbox checked={showDonorOffers} onCheckedChange={(checked) => setShowDonorOffers(!!checked)} />
@@ -206,22 +202,25 @@ export default function MapsPage() {
               </CardHeader>
               {showDonorOffers && (
                 <CardContent className="space-y-2">
-                  {donorCategories.map((category) => (
-                    <div key={category.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`donor-${category.id}`}
-                        checked={selectedDonorCategories.includes(category.id)}
-                        onCheckedChange={() => toggleDonorCategory(category.id)}
-                      />
-                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />
-                      <Label
-                        htmlFor={`donor-${category.id}`}
-                        className="text-sm text-foreground cursor-pointer capitalize"
-                      >
-                        {category.label}
-                      </Label>
-                    </div>
-                  ))}
+                  {donorCategories.map((category) => {
+                    const Icon = category.icon
+                    return (
+                      <div key={category.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`donor-${category.id}`}
+                          checked={selectedDonorCategories.includes(category.id)}
+                          onCheckedChange={() => toggleDonorCategory(category.id)}
+                        />
+                        <Label
+                          htmlFor={`donor-${category.id}`}
+                          className="text-sm text-foreground cursor-pointer flex items-center gap-1"
+                        >
+                          <Icon className="h-3.5 w-3.5 text-success" />
+                          {category.label}
+                        </Label>
+                      </div>
+                    )
+                  })}
                 </CardContent>
               )}
             </Card>
