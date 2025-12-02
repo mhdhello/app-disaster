@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 interface MapComponentProps {
@@ -14,6 +14,7 @@ interface MapComponentProps {
   }>
   onMapClick?: (lat: number, lng: number) => void
   height?: string
+  overlayControls?: React.ReactNode
 }
 
 export default function MapComponent({
@@ -23,6 +24,7 @@ export default function MapComponent({
   markers,
   onMapClick,
   height = "400px",
+  overlayControls,
 }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
@@ -71,9 +73,17 @@ export default function MapComponent({
     const map = L.map(mapRef.current).setView(center, zoom)
     mapInstanceRef.current = map
 
+    // Set Sri Lanka bounds to restrict map view
+    // Sri Lanka approximate bounds: [[South, West], [North, East]]
+    const sriLankaBounds = [
+      [5.9, 79.7], // Southwest corner
+      [9.8, 81.9], // Northeast corner
+    ]
+    map.setMaxBounds(sriLankaBounds)
+
     // Add tile layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '',
     }).addTo(map)
 
     // Fix default icon
@@ -132,10 +142,20 @@ export default function MapComponent({
 
   // Update center and zoom
   useEffect(() => {
-    if (mapInstanceRef.current && isLoaded) {
-      mapInstanceRef.current.setView(center, zoom)
+    if (mapInstanceRef.current && isLoaded && L) {
+      // Ensure center is within Sri Lanka bounds
+      const sriLankaBounds = [
+        [5.9, 79.7], // Southwest corner
+        [9.8, 81.9], // Northeast corner
+      ]
+      
+      // Clamp coordinates to Sri Lanka bounds
+      const clampedLat = Math.max(5.9, Math.min(9.8, center[0]))
+      const clampedLng = Math.max(79.7, Math.min(81.9, center[1]))
+      
+      mapInstanceRef.current.setView([clampedLat, clampedLng], zoom)
     }
-  }, [center, zoom, isLoaded])
+  }, [center, zoom, isLoaded, L])
 
   // Update single marker
   useEffect(() => {
@@ -194,5 +214,14 @@ export default function MapComponent({
     )
   }
 
-  return <div ref={mapRef} style={{ height, width: "100%" }} className="rounded-lg" />
+  return (
+    <div style={{ height, width: "100%" }} className="rounded-lg relative">
+      <div ref={mapRef} style={{ height, width: "100%" }} className="rounded-lg" />
+      {overlayControls && (
+        <div className="absolute inset-0 pointer-events-none z-[1000]">
+          <div className="pointer-events-auto">{overlayControls}</div>
+        </div>
+      )}
+    </div>
+  )
 }
