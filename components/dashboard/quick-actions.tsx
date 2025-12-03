@@ -18,7 +18,7 @@ export function QuickActions() {
         <div className="flex flex-col md:flex-row md:flex-wrap gap-3">
 
           {/* Report Flood Damage */}
-          <Link href="/damage-report" className="flex-1">
+          <Link href="/report-damage" className="flex-1">
             <Button
               className="
                 w-full justify-start gap-3 rounded-xl p-4
@@ -35,7 +35,7 @@ export function QuickActions() {
           </Link>
 
           {/* Offer Donations */}
-          <Link href="/donor-support" className="flex-1">
+          <Link href="/offer-help" className="flex-1">
             <Button
               className="
                 w-full justify-start gap-3 rounded-xl p-4
