@@ -76,17 +76,28 @@ function isMobileDevice(): boolean {
          (window.matchMedia && window.matchMedia("(max-width: 768px)").matches)
 }
 
-// Helper to open Google Maps
+// Helper to open Google Maps with exact coordinates
 function openGoogleMaps(lat: number, lng: number) {
+  // Format coordinates with high precision (6 decimal places = ~10cm accuracy)
+  const formattedLat = lat.toFixed(6)
+  const formattedLng = lng.toFixed(6)
+  
+  // Universal Google Maps URL that opens app on mobile if installed, web otherwise
+  // Using the @ format ensures exact coordinates are used
+  const mapsUrl = `https://www.google.com/maps/@${formattedLat},${formattedLng},15z`
+  
+  // Alternative URL format that also works well (search with exact coordinates)
+  const searchUrl = `https://www.google.com/maps/search/?api=1&query=${formattedLat},${formattedLng}`
+  
   if (isMobileDevice()) {
     const userAgent = typeof window !== "undefined" ? navigator.userAgent : ""
-    const webUrl = `https://www.google.com/maps?q=${lat},${lng}`
     
     if (/iPhone|iPad|iPod/i.test(userAgent)) {
-      // iOS - try Google Maps app first (if installed), fallback to web
-      const googleMapsAppUrl = `comgooglemaps://?q=${lat},${lng}&center=${lat},${lng}&zoom=14`
+      // iOS - try Google Maps app with exact coordinates
+      // Using ll parameter for exact lat/lng positioning
+      const googleMapsAppUrl = `comgooglemaps://?ll=${formattedLat},${formattedLng}&q=${formattedLat},${formattedLng}&zoom=15`
       
-      // Use hidden iframe to try opening app (doesn't navigate page)
+      // Try to open app first
       const iframe = document.createElement("iframe")
       iframe.style.display = "none"
       iframe.style.width = "0"
@@ -101,29 +112,29 @@ function openGoogleMaps(lat: number, lng: number) {
         }
       }, 1000)
       
-      // Fallback to web after short delay
+      // Fallback to web with exact coordinates
       setTimeout(() => {
-        window.open(webUrl, "_blank")
+        window.open(searchUrl, "_blank")
       }, 500)
     } else if (/Android/i.test(userAgent)) {
-      // Android - use geo: protocol which opens Google Maps app if installed
-      const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}`
+      // Android - use Google Maps intent URL (opens app if installed)
+      // This format ensures exact coordinates are preserved
+      const intentUrl = `https://www.google.com/maps/search/?api=1&query=${formattedLat},${formattedLng}`
       
-      // Try to open in app using location.href
-      window.location.href = geoUrl
+      // Try opening in app first
+      window.location.href = intentUrl
       
-      // Fallback to web if app doesn't open (after delay)
+      // Fallback to web if app doesn't open
       setTimeout(() => {
-        window.open(webUrl, "_blank")
+        window.open(searchUrl, "_blank")
       }, 1500)
     } else {
-      // Other mobile devices - open in web
-      window.open(webUrl, "_blank")
+      // Other mobile devices - use exact coordinate URL
+      window.open(searchUrl, "_blank")
     }
   } else {
-    // Desktop - open in new tab
-    const url = `https://www.google.com/maps?q=${lat},${lng}`
-    window.open(url, "_blank")
+    // Desktop - open with exact coordinates
+    window.open(searchUrl, "_blank")
   }
 }
 
