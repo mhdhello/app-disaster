@@ -29,12 +29,16 @@ export default function DashboardPage() {
         {/* Hero Section - Made responsive */}
         <div className="mb-6 sm:mb-8 rounded-2xl border border-border bg-card p-4 sm:p-8">
           <div className="flex flex-col items-center text-center md:flex-row md:text-left">
-            <div className="mb-4 md:mb-0 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-primary/20 md:mr-6">
-              <CloudRain className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+            <div className="mb-4 md:mb-0 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl md:mr-6">
+              <img
+                src="/Logo2.png"           // change to your logo path
+                alt="Portal Logo"
+                className="mb-4 md:mb-0 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl md:mr-6"
+              />
             </div>
             <div>
               <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground text-balance">
-                Sri Lanka Flood Relief Portal
+                RiseAgain Sri Lanka
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground text-pretty max-w-2xl">
                 Coordinating emergency response efforts. Report damage to receive help or register as a donor to support

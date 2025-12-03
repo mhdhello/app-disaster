@@ -1,0 +1,14 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://app-disaster.vercel.app/sitemap.xml
+
+# Disallow admin or private areas if any
+# Disallow: /admin/
+# Disallow: /api/
+
+# Crawl-delay (optional, adjust as needed)
+Crawl-delay: 1
+
