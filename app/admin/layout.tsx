@@ -114,14 +114,18 @@ export default function AdminLayout({
   const isLoginPage = useMemo(() => pathname === "/admin/login", [pathname])
 
   useEffect(() => {
-    // Only check auth on client side after mount
-    if (!isLoginPage) {
-      checkAuth()
-    }
+    // Check auth on mount - this will read from localStorage
+    checkAuth()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoginPage])
+  }, [])
 
   useEffect(() => {
+    // If authenticated and on login page, redirect to dashboard
+    if (isLoginPage && isAuthenticated) {
+      router.push("/admin")
+      return
+    }
+    
     // Redirect to login if not authenticated (only on client, and not already on login page)
     if (!isLoginPage && !isAuthenticated) {
       router.push("/admin/login")

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,17 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const login = useAdminStore((state) => state.login)
+  const isAuthenticated = useAdminStore((state) => state.isAuthenticated)
+  const checkAuth = useAdminStore((state) => state.checkAuth)
   const { toast } = useToast()
+
+  // Check if already authenticated on mount
+  useEffect(() => {
+    checkAuth()
+    if (isAuthenticated) {
+      router.push("/admin")
+    }
+  }, [isAuthenticated, router, checkAuth])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -2,6 +2,7 @@ import { create } from "zustand"
 
 interface AdminState {
   isAuthenticated: boolean
+  isChecking: boolean
   login: (password: string) => boolean
   logout: () => void
   checkAuth: () => void
@@ -21,10 +22,10 @@ const getStoredAuth = (): boolean => {
   }
 }
 
-export const useAdminStore = create<AdminState>((set) => ({
-  // Always start with false to avoid hydration mismatch
-  // Will be updated on client side via checkAuth
-  isAuthenticated: false,
+export const useAdminStore = create<AdminState>((set, get) => ({
+  // Initialize with localStorage value on client side
+  isAuthenticated: typeof window !== "undefined" ? getStoredAuth() : false,
+  isChecking: false,
   login: (password: string) => {
     if (password === ADMIN_PASSWORD) {
       if (typeof window !== "undefined") {
@@ -52,7 +53,8 @@ export const useAdminStore = create<AdminState>((set) => ({
   checkAuth: () => {
     // Only check on client side
     if (typeof window !== "undefined") {
-      set({ isAuthenticated: getStoredAuth() })
+      const authStatus = getStoredAuth()
+      set({ isAuthenticated: authStatus, isChecking: false })
     }
   },
 }))
