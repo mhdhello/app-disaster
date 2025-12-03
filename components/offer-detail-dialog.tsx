@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
 import {
   Pill,
   Brush,
@@ -21,8 +22,10 @@ import {
   User,
   Phone,
   FileText,
+  ExternalLink,
 } from "lucide-react"
 import type { DonorOffer } from "@/lib/store"
+import MapComponent from "@/components/map-component"
 
 const categoryIcons: Record<string, React.ElementType> = {
   medical: Pill,
@@ -110,6 +113,10 @@ export function OfferDetailDialog({ offer, open, onOpenChange }: OfferDetailDial
   const Icon = categoryIcons[offer.category] || Heart
   const categoryLabel = categoryLabels[offer.category] || offer.category
 
+  // Get location data from offer
+  const locationData = (offer.data?.locationData as { lat: number; lng: number; address?: string }) || 
+                       (offer.coordinates ? { lat: offer.coordinates.lat, lng: offer.coordinates.lng, address: offer.location } : undefined)
+
   // Filter out internal fields from display
   const displayData = Object.entries(offer.data || {}).filter(
     ([key]) => !["locationData", "donorName", "fullName", "contact"].includes(key),
@@ -117,7 +124,7 @@ export function OfferDetailDialog({ offer, open, onOpenChange }: OfferDetailDial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10">
@@ -130,7 +137,7 @@ export function OfferDetailDialog({ offer, open, onOpenChange }: OfferDetailDial
           </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
+        <ScrollArea className="max-h-[75vh] pr-4">
           <div className="space-y-6">
             {/* Status Section */}
             <div className="flex items-center gap-2">
@@ -158,29 +165,57 @@ export function OfferDetailDialog({ offer, open, onOpenChange }: OfferDetailDial
               </div>
             </div>
 
-            {/* Location & Time */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {offer.location && (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Separator />
+
+            {/* Location Map */}
+            {locationData && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
                     <MapPin className="h-4 w-4" />
-                    Location
+                    Location on Map
                   </div>
-                  <p className="text-foreground">{offer.location}</p>
-                  {offer.coordinates && (
-                    <p className="text-xs text-muted-foreground">
-                      GPS: {offer.coordinates.lat.toFixed(6)}, {offer.coordinates.lng.toFixed(6)}
-                    </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const googleMapsUrl = `https://www.google.com/maps?q=${locationData.lat},${locationData.lng}`
+                      window.open(googleMapsUrl, "_blank")
+                    }}
+                    className="gap-2"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open in Google Maps
+                  </Button>
+                </div>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <MapComponent
+                    center={[locationData.lat, locationData.lng]}
+                    zoom={15}
+                    marker={[locationData.lat, locationData.lng]}
+                    height="300px"
+                  />
+                </div>
+                <div className="text-sm">
+                  {offer.location && (
+                    <p className="text-foreground font-medium">{offer.location}</p>
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    GPS: {locationData.lat.toFixed(6)}, {locationData.lng.toFixed(6)}
+                  </p>
                 </div>
-              )}
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  Registered On
-                </div>
-                <p className="text-foreground">{new Date(offer.timestamp).toLocaleString()}</p>
               </div>
+            )}
+
+            <Separator />
+
+            {/* Time */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                Registered On
+              </div>
+              <p className="text-foreground">{new Date(offer.timestamp).toLocaleString()}</p>
             </div>
 
             <Separator />

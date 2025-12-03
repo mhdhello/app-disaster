@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
 import {
   Home,
   Church,
@@ -21,8 +22,10 @@ import {
   Clock,
   AlertTriangle,
   FileText,
+  ExternalLink,
 } from "lucide-react"
 import type { DamageReport } from "@/lib/store"
+import MapComponent from "@/components/map-component"
 
 const categoryIcons: Record<string, React.ElementType> = {
   houses: Home,
@@ -127,12 +130,16 @@ export function ReportDetailDialog({ report, open, onOpenChange }: ReportDetailD
   const Icon = categoryIcons[report.category] || AlertTriangle
   const categoryLabel = categoryLabels[report.category] || report.category
 
+  // Get location data from report
+  const locationData = (report.data?.locationData as { lat: number; lng: number; address?: string }) || 
+                       (report.coordinates ? { lat: report.coordinates.lat, lng: report.coordinates.lng, address: report.location } : undefined)
+
   // Filter out internal fields from display
   const displayData = Object.entries(report.data || {}).filter(([key]) => !["locationData"].includes(key))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -145,7 +152,7 @@ export function ReportDetailDialog({ report, open, onOpenChange }: ReportDetailD
           </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
+        <ScrollArea className="max-h-[75vh] pr-4">
           <div className="space-y-6">
             {/* Status Section */}
             <div className="flex flex-wrap gap-3">
@@ -163,27 +170,53 @@ export function ReportDetailDialog({ report, open, onOpenChange }: ReportDetailD
 
             <Separator />
 
-            {/* Location & Time */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  Location
+            {/* Location Map */}
+            {locationData && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <MapPin className="h-4 w-4" />
+                    Location on Map
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const googleMapsUrl = `https://www.google.com/maps?q=${locationData.lat},${locationData.lng}`
+                      window.open(googleMapsUrl, "_blank")
+                    }}
+                    className="gap-2"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open in Google Maps
+                  </Button>
                 </div>
-                <p className="text-foreground">{report.location}</p>
-                {report.coordinates && (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <MapComponent
+                    center={[locationData.lat, locationData.lng]}
+                    zoom={15}
+                    marker={[locationData.lat, locationData.lng]}
+                    height="300px"
+                  />
+                </div>
+                <div className="text-sm">
+                  <p className="text-foreground font-medium">{report.location}</p>
                   <p className="text-xs text-muted-foreground">
-                    GPS: {report.coordinates.lat.toFixed(6)}, {report.coordinates.lng.toFixed(6)}
+                    GPS: {locationData.lat.toFixed(6)}, {locationData.lng.toFixed(6)}
                   </p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  Reported On
                 </div>
-                <p className="text-foreground">{new Date(report.timestamp).toLocaleString()}</p>
               </div>
+            )}
+
+            <Separator />
+
+            {/* Time */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                Reported On
+              </div>
+              <p className="text-foreground">{new Date(report.timestamp).toLocaleString()}</p>
             </div>
 
             <Separator />

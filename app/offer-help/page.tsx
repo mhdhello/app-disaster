@@ -30,48 +30,26 @@ import {
   Eye,
 } from "lucide-react"
 
-import { MedicalForm } from "@/components/forms/donor/medical-form"
 import { CleaningForm } from "@/components/forms/donor/cleaning-form"
 import { VolunteersForm } from "@/components/forms/donor/volunteers-form"
 import { FundsForm } from "@/components/forms/donor/funds-form"
-import { ElectricitySupportForm } from "@/components/forms/donor/electricity-support-form"
-import { WaterSupportForm } from "@/components/forms/donor/water-support-form"
 import { FurnitureForm } from "@/components/forms/donor/furniture-form"
-import { UtensilsForm } from "@/components/forms/donor/utensils-form"
 
 const categories = [
-  {
-    id: "medical",
-    label: "Medical Supplies",
-    icon: Pill,
-    description: "Donate medicines, first aid kits, medical equipment",
-  },
   { id: "cleaning", label: "Cleaning Equipment", icon: Brush, description: "Shovels, brooms, pumps, pressure washers" },
   { id: "volunteers", label: "Man-hours / Volunteers", icon: Users, description: "Offer your time and skills" },
   { id: "funds", label: "Funds Donation", icon: DollarSign, description: "Financial contributions" },
-  { id: "electricity", label: "Electricity Restoration", icon: Zap, description: "Electrical skills and equipment" },
-  { id: "water", label: "Water Restoration", icon: Droplets, description: "Pumps, pipes, purifiers" },
   { id: "furniture", label: "Furniture Donation", icon: Armchair, description: "Beds, tables, chairs, cupboards" },
-  {
-    id: "utensils",
-    label: "Utensils & Kitchen",
-    icon: UtensilsCrossed,
-    description: "Plates, pots, cooking equipment",
-  },
 ]
 
 const formComponents: Record<
   string,
   React.FC<{ formData: Record<string, unknown>; onChange: (data: Record<string, unknown>) => void }>
 > = {
-  medical: MedicalForm,
   cleaning: CleaningForm,
   volunteers: VolunteersForm,
   funds: FundsForm,
-  electricity: ElectricitySupportForm,
-  water: WaterSupportForm,
   furniture: FurnitureForm,
-  utensils: UtensilsForm,
 }
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -180,7 +158,11 @@ export default function OfferHelpPage() {
                 {donorOffers.map((offer) => {
                   const Icon = categoryIcons[offer.category] || Heart
                   return (
-                    <Card key={offer.id} className="bg-card border-border">
+                    <Card 
+                      key={offer.id} 
+                      className="bg-card border-border cursor-pointer hover:border-success hover:shadow-md transition-all"
+                      onClick={() => handleViewOffer(offer)}
+                    >
                       <CardContent className="p-3 sm:p-4">
                         <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                           <div className="flex items-center gap-3 sm:block">
@@ -220,7 +202,10 @@ export default function OfferHelpPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleViewOffer(offer)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewOffer(offer)
+                                }}
                                 className="gap-2 text-xs sm:text-sm"
                               >
                                 <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

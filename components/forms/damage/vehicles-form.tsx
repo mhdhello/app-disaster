@@ -92,6 +92,19 @@ export function VehiclesForm({ formData, onChange }: VehiclesFormProps) {
         onChange={(location) => updateField("locationData", location)}
       />
 
+      <div className="space-y-2">
+        <Label htmlFor="address" className="text-foreground">
+          Nearby Landmark or Place Description
+        </Label>
+        <Input
+          id="address"
+          placeholder="e.g., Near school, beside market, etc."
+          value={(formData.address as string) || ""}
+          onChange={(e) => updateField("address", e.target.value)}
+          className="bg-input border-border text-foreground"
+        />
+      </div>
+
       <div className="space-y-3">
         <Label className="text-foreground">Type of Damage</Label>
         <div className="grid grid-cols-2 gap-3">

@@ -54,6 +54,19 @@ export function RoadsForm({ formData, onChange }: RoadsFormProps) {
         onChange={(location) => updateField("locationData", location)}
       />
 
+      <div className="space-y-2">
+        <Label htmlFor="address" className="text-foreground">
+          Nearby Landmark or Place Description
+        </Label>
+        <Input
+          id="address"
+          placeholder="e.g., Near school, beside market, etc."
+          value={(formData.address as string) || ""}
+          onChange={(e) => updateField("address", e.target.value)}
+          className="bg-input border-border text-foreground"
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label className="text-foreground">

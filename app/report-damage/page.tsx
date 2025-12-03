@@ -191,7 +191,11 @@ export default function ReportDamagePage() {
                 {damageReports.map((report) => {
                   const Icon = categoryIcons[report.category] || AlertTriangle
                   return (
-                    <Card key={report.id} className="bg-card border-border">
+                    <Card 
+                      key={report.id} 
+                      className="bg-card border-border cursor-pointer hover:border-primary hover:shadow-md transition-all"
+                      onClick={() => handleViewReport(report)}
+                    >
                       <CardContent className="p-3 sm:p-4">
                         <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                           <div className="flex items-center gap-3 sm:block">
@@ -234,7 +238,10 @@ export default function ReportDamagePage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleViewReport(report)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewReport(report)
+                                }}
                                 className="gap-2 text-xs sm:text-sm"
                               >
                                 <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

@@ -65,6 +65,19 @@ export function HousesForm({ formData, onChange }: HousesFormProps) {
         onChange={(location) => updateField("locationData", location)}
       />
 
+      <div className="space-y-2">
+        <Label htmlFor="address" className="text-foreground">
+          Nearby Landmark or Place Description
+        </Label>
+        <Input
+          id="address"
+          placeholder="e.g., Near school, beside market, etc."
+          value={(formData.address as string) || ""}
+          onChange={(e) => updateField("address", e.target.value)}
+          className="bg-input border-border text-foreground"
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label className="text-foreground">Type of Residence</Label>
@@ -237,31 +250,21 @@ export function HousesForm({ formData, onChange }: HousesFormProps) {
       </div>
 
       <div className="space-y-3">
-        <Label className="text-foreground">Immediate Requirements</Label>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {immediateNeeds.map((need) => (
-            <div key={need} className="flex items-center space-x-2">
-              <Checkbox
-                id={`need-${need}`}
-                checked={((formData.immediateNeeds as string[]) || []).includes(need)}
-                onCheckedChange={(checked) => {
-                  const current = (formData.immediateNeeds as string[]) || []
-                  if (checked) {
-                    updateField("immediateNeeds", [...current, need])
-                  } else {
-                    updateField(
-                      "immediateNeeds",
-                      current.filter((n) => n !== need),
-                    )
-                  }
-                }}
-              />
-              <Label htmlFor={`need-${need}`} className="text-sm text-foreground">
-                {need}
-              </Label>
-            </div>
-          ))}
-        </div>
+        <Label className="text-foreground">Immediate Needs to Rebuild</Label>
+        <textarea
+          className="w-full rounded-md border border-input bg-background p-3 text-sm"
+          placeholder="Enter immediate needs (comma separated or one per line)"
+          value={(formData.immediateNeeds as string[])?.join("\n") || ""}
+          onChange={(e) => {
+            const value = e.target.value
+              .split("\n")
+              .map((v) => v.trim())
+              .filter((v) => v !== "")
+
+            updateField("immediateNeeds", value)
+          }}
+          rows={4}
+        />
       </div>
 
       <div className="space-y-2">
