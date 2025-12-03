@@ -86,6 +86,64 @@ function formatLabel(key: string): string {
     .replace(/_/g, " ")
 }
 
+// Helper to detect mobile device
+function isMobileDevice(): boolean {
+  if (typeof window === "undefined") return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         (window.matchMedia && window.matchMedia("(max-width: 768px)").matches)
+}
+
+// Helper to open Google Maps
+function openGoogleMaps(lat: number, lng: number) {
+  if (isMobileDevice()) {
+    const userAgent = typeof window !== "undefined" ? navigator.userAgent : ""
+    const webUrl = `https://www.google.com/maps?q=${lat},${lng}`
+    
+    if (/iPhone|iPad|iPod/i.test(userAgent)) {
+      // iOS - try Google Maps app first (if installed), fallback to web
+      const googleMapsAppUrl = `comgooglemaps://?q=${lat},${lng}&center=${lat},${lng}&zoom=14`
+      
+      // Use hidden iframe to try opening app (doesn't navigate page)
+      const iframe = document.createElement("iframe")
+      iframe.style.display = "none"
+      iframe.style.width = "0"
+      iframe.style.height = "0"
+      iframe.src = googleMapsAppUrl
+      document.body.appendChild(iframe)
+      
+      // Remove iframe after attempt
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+      
+      // Fallback to web after short delay
+      setTimeout(() => {
+        window.open(webUrl, "_blank")
+      }, 500)
+    } else if (/Android/i.test(userAgent)) {
+      // Android - use geo: protocol which opens Google Maps app if installed
+      const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}`
+      
+      // Try to open in app using location.href
+      window.location.href = geoUrl
+      
+      // Fallback to web if app doesn't open (after delay)
+      setTimeout(() => {
+        window.open(webUrl, "_blank")
+      }, 1500)
+    } else {
+      // Other mobile devices - open in web
+      window.open(webUrl, "_blank")
+    }
+  } else {
+    // Desktop - open in new tab
+    const url = `https://www.google.com/maps?q=${lat},${lng}`
+    window.open(url, "_blank")
+  }
+}
+
 // Helper to render field value
 function renderValue(value: unknown): React.ReactNode {
   if (value === null || value === undefined || value === "") {
@@ -181,10 +239,7 @@ export function ReportDetailDialog({ report, open, onOpenChange }: ReportDetailD
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      const googleMapsUrl = `https://www.google.com/maps?q=${locationData.lat},${locationData.lng}`
-                      window.open(googleMapsUrl, "_blank")
-                    }}
+                    onClick={() => openGoogleMaps(locationData.lat, locationData.lng)}
                     className="gap-2"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />

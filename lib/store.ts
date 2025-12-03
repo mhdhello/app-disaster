@@ -9,6 +9,9 @@ export interface DamageReport {
   severity: string
   data: Record<string, unknown>
   status: "pending" | "reviewed" | "assigned" | "resolved"
+  verified?: boolean
+  verifiedAt?: Date
+  verifiedBy?: string
 }
 
 export interface DonorOffer {
@@ -21,15 +24,34 @@ export interface DonorOffer {
   coordinates?: { lat: number; lng: number }
   data: Record<string, unknown>
   status: "available" | "matched" | "delivered"
+  verified?: boolean
+  verifiedAt?: Date
+  verifiedBy?: string
+}
+
+export interface AdminUser {
+  id: string
+  name: string
+  email: string
+  role: "admin" | "moderator" | "viewer"
+  createdAt: Date
+  lastLogin?: Date
+  active: boolean
 }
 
 interface StoreState {
   damageReports: DamageReport[]
   donorOffers: DonorOffer[]
+  adminUsers: AdminUser[]
   addDamageReport: (report: Omit<DamageReport, "id" | "timestamp" | "status">) => void
   addDonorOffer: (offer: Omit<DonorOffer, "id" | "timestamp" | "status">) => void
   updateReportStatus: (id: string, status: DamageReport["status"]) => void
   updateOfferStatus: (id: string, status: DonorOffer["status"]) => void
+  verifyReport: (id: string, verifiedBy: string) => void
+  verifyOffer: (id: string, verifiedBy: string) => void
+  addAdminUser: (user: Omit<AdminUser, "id" | "createdAt">) => void
+  updateAdminUser: (id: string, updates: Partial<AdminUser>) => void
+  deleteAdminUser: (id: string) => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -757,5 +779,51 @@ export const useStore = create<StoreState>((set) => ({
   updateOfferStatus: (id, status) =>
     set((state) => ({
       donorOffers: state.donorOffers.map((offer) => (offer.id === id ? { ...offer, status } : offer)),
+    })),
+  verifyReport: (id, verifiedBy) =>
+    set((state) => ({
+      damageReports: state.damageReports.map((report) =>
+        report.id === id
+          ? { ...report, verified: true, verifiedAt: new Date(), verifiedBy }
+          : report
+      ),
+    })),
+  verifyOffer: (id, verifiedBy) =>
+    set((state) => ({
+      donorOffers: state.donorOffers.map((offer) =>
+        offer.id === id
+          ? { ...offer, verified: true, verifiedAt: new Date(), verifiedBy }
+          : offer
+      ),
+    })),
+  adminUsers: [
+    {
+      id: "1",
+      name: "Admin User",
+      email: "admin@floodrelief.lk",
+      role: "admin",
+      createdAt: new Date("2024-12-01"),
+      lastLogin: new Date(),
+      active: true,
+    },
+  ],
+  addAdminUser: (user) =>
+    set((state) => ({
+      adminUsers: [
+        ...state.adminUsers,
+        {
+          ...user,
+          id: Date.now().toString(),
+          createdAt: new Date(),
+        },
+      ],
+    })),
+  updateAdminUser: (id, updates) =>
+    set((state) => ({
+      adminUsers: state.adminUsers.map((user) => (user.id === id ? { ...user, ...updates } : user)),
+    })),
+  deleteAdminUser: (id) =>
+    set((state) => ({
+      adminUsers: state.adminUsers.filter((user) => user.id !== id),
     })),
 }))

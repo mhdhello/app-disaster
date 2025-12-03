@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, FileWarning, Heart, Map, Menu } from "lucide-react"
+import { LayoutDashboard, FileWarning, Heart, Map, Menu, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/report-damage", label: "Report Flood Damage", icon: FileWarning },
   { href: "/offer-help", label: "Offer Help & Donations", icon: Heart },
   { href: "/maps", label: "Maps", icon: Map },
+  { href: "/admin", label: "Admin", icon: Shield },
 ]
 
 export function Header() {
@@ -42,7 +43,7 @@ export function Header() {
           <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href || (item.href === "/admin" && pathname?.startsWith("/admin"))
               return (
                 <Link
                   key={item.href}
@@ -112,7 +113,7 @@ export function Header() {
                   <nav className="flex flex-col gap-1 p-4 flex-1">
                     {navItems.map((item) => {
                       const Icon = item.icon
-                      const isActive = pathname === item.href
+                      const isActive = pathname === item.href || (item.href === "/admin" && pathname?.startsWith("/admin"))
                       return (
                         <Link
                           key={item.href}
