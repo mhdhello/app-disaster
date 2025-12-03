@@ -31,7 +31,7 @@ export default function DashboardPage() {
           <div className="flex flex-col items-center text-center md:flex-row md:text-left">
             <div className="mb-4 md:mb-0 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl md:mr-6">
               <img
-                src="/Logo2.png"           // change to your logo path
+                src="/logo2.png"           // change to your logo path
                 alt="Portal Logo"
                 className="mb-4 md:mb-0 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl md:mr-6"
               />
