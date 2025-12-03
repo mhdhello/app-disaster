@@ -66,13 +66,13 @@ export default function AdminOffersPage() {
   }
 
   const filteredOffers = donorOffers.filter((offer) => {
-    const matchesSearch =
+      const matchesSearch =
       searchQuery === "" ||
       offer.donorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       offer.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       offer.contact.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (offer.location && offer.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      JSON.stringify(offer.data).toLowerCase().includes(searchQuery.toLowerCase())
+      (offer.data && JSON.stringify(offer.data).toLowerCase().includes(searchQuery.toLowerCase()))
 
     const matchesStatus = statusFilter === "all" || offer.status === statusFilter
     const matchesCategory = categoryFilter === "all" || offer.category === categoryFilter
@@ -92,10 +92,10 @@ export default function AdminOffersPage() {
   if (!isAuthenticated) return null
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
+      <div className="w-full">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
-          <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-success" />
+          <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-success shrink-0" />
           <span className="break-words">Donor Offers Management</span>
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage and verify all donor offers</p>
@@ -167,10 +167,10 @@ export default function AdminOffersPage() {
       ) : (
         <div className="grid gap-4">
           {filteredOffers.map((offer) => (
-            <Card key={offer.id} className="bg-card border-border hover:border-primary transition-colors">
+            <Card key={offer.id} className="bg-card border-border hover:border-primary transition-colors w-full overflow-hidden">
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 w-full">
+                  <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-start gap-2 mb-3">
                       <Badge variant="outline" className={`text-xs ${statusColors[offer.status]}`}>
                         {offer.status}
@@ -185,27 +185,27 @@ export default function AdminOffersPage() {
                         </Badge>
                       )}
                     </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-2 capitalize">
+                    <h3 className="font-semibold text-lg text-foreground mb-2 capitalize truncate">
                       {offer.category.replace(/-/g, " ")} Support
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <User className="h-4 w-4 shrink-0" />
-                        <span>{offer.donorName}</span>
+                        <span className="truncate">{offer.donorName}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <Phone className="h-4 w-4 shrink-0" />
-                        <span>{offer.contact}</span>
+                        <span className="truncate">{offer.contact}</span>
                       </div>
                       {offer.location && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           <MapPin className="h-4 w-4 shrink-0" />
-                          <span>{offer.location}</span>
+                          <span className="truncate">{offer.location}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 shrink-0" />
-                        <span>{new Date(offer.timestamp).toLocaleString()}</span>
+                        <span className="truncate">{new Date(offer.timestamp).toLocaleString()}</span>
                       </div>
                       {offer.verified && offer.verifiedAt && (
                         <div className="flex items-center gap-2 text-green-600">
@@ -215,12 +215,12 @@ export default function AdminOffersPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                     <Select
                       value={offer.status}
                       onValueChange={(value) => handleStatusChange(offer.id, value)}
                     >
-                      <SelectTrigger className="w-full sm:w-[130px] lg:w-[140px] bg-background border-border text-foreground text-xs sm:text-sm">
+                      <SelectTrigger className="w-full sm:w-[130px] lg:w-[140px] bg-background border-border text-foreground text-xs sm:text-sm shrink-0">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -261,17 +261,19 @@ export default function AdminOffersPage() {
 
       {/* Offer Details Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] bg-card border-border">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] bg-card border-border p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Donor Offer Details</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle className="text-foreground text-lg sm:text-xl">
+              Donor Offer Details
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm">
               Complete information about this donor offer
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] pr-4">
+          <ScrollArea className="max-h-[70vh] pr-2 sm:pr-4">
             {selectedOffer && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Category</p>
                     <p className="text-foreground capitalize">{selectedOffer.category.replace(/-/g, " ")}</p>
@@ -296,24 +298,24 @@ export default function AdminOffersPage() {
                       {selectedOffer.verified ? "Yes" : "No"}
                     </Badge>
                   </div>
-                  {selectedOffer.location && (
+                    {selectedOffer.location && (
+                      <div className="sm:col-span-2">
+                        <p className="text-sm font-medium text-muted-foreground">Location</p>
+                        <p className="text-foreground">{selectedOffer.location}</p>
+                      </div>
+                    )}
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Location</p>
-                      <p className="text-foreground">{selectedOffer.location}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Timestamp</p>
+                      <p className="text-foreground">{new Date(selectedOffer.timestamp).toLocaleString()}</p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Timestamp</p>
-                    <p className="text-foreground">{new Date(selectedOffer.timestamp).toLocaleString()}</p>
-                  </div>
-                  {selectedOffer.verifiedAt && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Verified At</p>
-                      <p className="text-foreground">{new Date(selectedOffer.verifiedAt).toLocaleString()}</p>
-                    </div>
-                  )}
-                  {selectedOffer.coordinates && (
-                    <div className="col-span-2">
+                    {selectedOffer.verifiedAt && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Verified At</p>
+                        <p className="text-foreground">{new Date(selectedOffer.verifiedAt).toLocaleString()}</p>
+                      </div>
+                    )}
+                    {selectedOffer.coordinates && (
+                      <div className="sm:col-span-2">
                       <p className="text-sm font-medium text-muted-foreground">Coordinates</p>
                       <p className="text-foreground">
                         {selectedOffer.coordinates.lat}, {selectedOffer.coordinates.lng}
@@ -322,10 +324,11 @@ export default function AdminOffersPage() {
                   )}
                 </div>
                 <Separator />
+                <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Form Data</p>
                   <div className="bg-secondary rounded-lg p-4">
-                    <pre className="text-xs text-foreground overflow-auto">
+                    <pre className="text-xs text-foreground overflow-auto whitespace-pre-wrap sm:whitespace-pre">
                       {JSON.stringify(selectedOffer.data, null, 2)}
                     </pre>
                   </div>

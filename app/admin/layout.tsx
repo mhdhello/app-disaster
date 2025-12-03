@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import {
@@ -53,6 +54,50 @@ const adminMenuItems = [
     icon: Users,
   },
 ]
+
+// Separate component for sidebar nav items to handle mobile closing
+function SidebarNavItem({
+  href,
+  isActive,
+  icon: Icon,
+  title,
+}: {
+  href: string
+  isActive: boolean
+  icon: React.ElementType
+  title: string
+}) {
+  const { setOpenMobile, isMobile } = useSidebar()
+  const router = useRouter()
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Close mobile sidebar when link is clicked
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+    // Use router.push for faster navigation
+    e.preventDefault()
+    router.push(href)
+  }
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        className={cn(
+          "w-full justify-start",
+          isActive && "bg-primary text-primary-foreground"
+        )}
+      >
+        <a href={href} onClick={handleClick}>
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className="truncate">{title}</span>
+        </a>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
 
 export default function AdminLayout({
   children,
@@ -123,21 +168,7 @@ export default function AdminLayout({
                     // Check if current pathname matches the route (exact match or starts with for nested routes)
                     const isActive = pathname === item.url || (item.url !== "/admin" && pathname?.startsWith(item.url))
                     return (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={isActive}
-                          className={cn(
-                            "w-full justify-start",
-                            isActive && "bg-primary text-primary-foreground"
-                          )}
-                        >
-                          <Link href={item.url}>
-                            <Icon className="h-4 w-4 shrink-0" />
-                            <span className="truncate">{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <SidebarNavItem key={item.url} href={item.url} isActive={isActive} icon={Icon} title={item.title} />
                     )
                   })}
                 </SidebarMenu>
@@ -155,12 +186,12 @@ export default function AdminLayout({
             </Button>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 min-w-0 overflow-hidden">
           <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-4">
             <SidebarTrigger />
             <div className="flex-1" />
           </header>
-          <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+          <main className="flex-1 overflow-auto p-4 sm:p-6 w-full max-w-full">{children}</main>
         </SidebarInset>
       </div>
     </SidebarProvider>

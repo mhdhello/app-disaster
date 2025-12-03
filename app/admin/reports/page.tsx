@@ -78,12 +78,12 @@ export default function AdminReportsPage() {
   }
 
   const filteredReports = damageReports.filter((report) => {
-    const matchesSearch =
+      const matchesSearch =
       searchQuery === "" ||
       report.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       report.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       report.severity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      JSON.stringify(report.data).toLowerCase().includes(searchQuery.toLowerCase())
+      (report.data && JSON.stringify(report.data).toLowerCase().includes(searchQuery.toLowerCase()))
 
     const matchesStatus = statusFilter === "all" || report.status === statusFilter
     const matchesCategory = categoryFilter === "all" || report.category === categoryFilter
@@ -103,10 +103,10 @@ export default function AdminReportsPage() {
   if (!isAuthenticated) return null
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
+      <div className="w-full">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
-          <FileWarning className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <FileWarning className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
           <span className="break-words">Damage Reports Management</span>
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage and verify all damage reports</p>
@@ -181,10 +181,10 @@ export default function AdminReportsPage() {
       ) : (
         <div className="grid gap-4">
           {filteredReports.map((report) => (
-            <Card key={report.id} className="bg-card border-border hover:border-primary transition-colors">
+            <Card key={report.id} className="bg-card border-border hover:border-primary transition-colors w-full overflow-hidden">
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 w-full">
+                  <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-start gap-2 mb-3">
                       <Badge
                         className={`text-xs capitalize ${severityColors[report.severity] || "bg-gray-100 text-gray-800"}`}
@@ -204,30 +204,36 @@ export default function AdminReportsPage() {
                         </Badge>
                       )}
                     </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-2 capitalize">
+                    <h3 className="font-semibold text-lg text-foreground mb-2 capitalize truncate">
                       {report.category.replace(/-/g, " ")} Damage
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <MapPin className="h-4 w-4 shrink-0" />
-                        <span>{report.location}</span>
+                        <span className="truncate">{report.location}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 shrink-0" />
-                        <span>{new Date(report.timestamp).toLocaleString()}</span>
+                        <span className="truncate">{new Date(report.timestamp).toLocaleString()}</span>
                       </div>
-                      {report.data.contact && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 shrink-0" />
-                          <span>{String(report.data.contact)}</span>
-                        </div>
-                      )}
-                      {report.data.fullName && (
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 shrink-0" />
-                          <span>{String(report.data.fullName)}</span>
-                        </div>
-                      )}
+                      {(() => {
+                        const contact = report.data?.contact
+                        return contact && typeof contact === "string" ? (
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{contact}</span>
+                          </div>
+                        ) : null
+                      })()}
+                      {(() => {
+                        const fullName = report.data?.fullName
+                        return fullName && typeof fullName === "string" ? (
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{fullName}</span>
+                          </div>
+                        ) : null
+                      })()}
                       {report.verified && report.verifiedAt && (
                         <div className="flex items-center gap-2 text-green-600">
                           <CheckCircle2 className="h-4 w-4 shrink-0" />
@@ -236,12 +242,12 @@ export default function AdminReportsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                     <Select
                       value={report.status}
                       onValueChange={(value) => handleStatusChange(report.id, value)}
                     >
-                      <SelectTrigger className="w-full sm:w-[130px] lg:w-[140px] bg-background border-border text-foreground text-xs sm:text-sm">
+                      <SelectTrigger className="w-full sm:w-[130px] lg:w-[140px] bg-background border-border text-foreground text-xs sm:text-sm shrink-0">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -283,55 +289,80 @@ export default function AdminReportsPage() {
 
       {/* Report Details Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] bg-card border-border">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] bg-card border-border p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Damage Report Details</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle className="text-foreground text-lg sm:text-xl">
+              Damage Report Details
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm">
               Complete information about this damage report
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] pr-4">
+
+          <ScrollArea className="max-h-[70vh] pr-2 sm:pr-4">
             {selectedReport && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+
+                {/* Responsive grid: 2 columns on desktop, 1 column on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Category</p>
-                    <p className="text-foreground capitalize">{selectedReport.category.replace(/-/g, " ")}</p>
+                    <p className="text-foreground capitalize">
+                      {selectedReport.category.replace(/-/g, " ")}
+                    </p>
                   </div>
+
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Severity</p>
                     <Badge className={severityColors[selectedReport.severity] || ""}>
                       {selectedReport.severity}
                     </Badge>
                   </div>
+
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Status</p>
                     <Badge variant="outline" className={statusColors[selectedReport.status]}>
                       {selectedReport.status}
                     </Badge>
                   </div>
+
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Verified</p>
-                    <Badge variant="outline" className={selectedReport.verified ? "bg-green-100 text-green-800" : ""}>
+                    <Badge
+                      variant="outline"
+                      className={
+                        selectedReport.verified
+                          ? "bg-green-100 text-green-800"
+                          : ""
+                      }
+                    >
                       {selectedReport.verified ? "Yes" : "No"}
                     </Badge>
                   </div>
+
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Timestamp</p>
-                    <p className="text-foreground">{new Date(selectedReport.timestamp).toLocaleString()}</p>
+                    <p className="text-foreground">
+                      {new Date(selectedReport.timestamp).toLocaleString()}
+                    </p>
                   </div>
+
                   {selectedReport.verifiedAt && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Verified At</p>
-                      <p className="text-foreground">{new Date(selectedReport.verifiedAt).toLocaleString()}</p>
+                      <p className="text-foreground">
+                        {new Date(selectedReport.verifiedAt).toLocaleString()}
+                      </p>
                     </div>
                   )}
-                  <div className="col-span-2">
+
+                  <div className="sm:col-span-2">
                     <p className="text-sm font-medium text-muted-foreground">Location</p>
                     <p className="text-foreground">{selectedReport.location}</p>
                   </div>
+
                   {selectedReport.coordinates && (
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <p className="text-sm font-medium text-muted-foreground">Coordinates</p>
                       <p className="text-foreground">
                         {selectedReport.coordinates.lat}, {selectedReport.coordinates.lng}
@@ -339,11 +370,14 @@ export default function AdminReportsPage() {
                     </div>
                   )}
                 </div>
+
                 <Separator />
+
+                {/* JSON block with mobile-friendly scrolling */}
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Form Data</p>
                   <div className="bg-secondary rounded-lg p-4">
-                    <pre className="text-xs text-foreground overflow-auto">
+                    <pre className="text-xs text-foreground overflow-auto whitespace-pre-wrap sm:whitespace-pre">
                       {JSON.stringify(selectedReport.data, null, 2)}
                     </pre>
                   </div>
