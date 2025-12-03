@@ -56,13 +56,20 @@ export const metadata: Metadata = {
     siteName: "RiseAgain Sri Lanka",
     title: "RiseAgain Sri Lanka | Emergency Response System",
     description:
-      "Official emergency response portal for Sri Lanka flood disaster relief. Report flood damage, offer help, and coordinate relief efforts.",
+      "Official emergency response portal for Sri Lanka flood disaster relief. Report flood damage, offer help, and coordinate relief efforts. Connect affected communities with donors and volunteers.",
     images: [
       {
-        url: "/Logo.png",
+        url: "https://app-disaster.vercel.app/Logo.png",
         width: 1200,
         height: 630,
         alt: "RiseAgain Sri Lanka - Emergency Response System",
+        type: "image/png",
+      },
+      {
+        url: "https://app-disaster.vercel.app/logo2.png",
+        width: 1200,
+        height: 630,
+        alt: "RiseAgain Sri Lanka - Emergency Response Portal",
         type: "image/png",
       },
     ],
@@ -72,7 +79,12 @@ export const metadata: Metadata = {
     title: "RiseAgain Sri Lanka | Emergency Response System",
     description:
       "Official emergency response portal for Sri Lanka flood disaster relief. Report damage or offer help.",
-    images: ["/Logo.png"],
+    images: [
+      {
+        url: "https://app-disaster.vercel.app/Logo.png",
+        alt: "RiseAgain Sri Lanka - Emergency Response System",
+      },
+    ],
     creator: "@srilankafloodrelief",
     site: "@srilankafloodrelief",
   },
