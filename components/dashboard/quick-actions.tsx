@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileWarning, Heart, Phone, UserSearch } from "lucide-react"
+import { FileWarning, Heart, Phone, UserSearch, HelpingHand } from "lucide-react"
 
 export function QuickActions() {
   return (
@@ -48,6 +48,23 @@ export function QuickActions() {
                 <Heart className="h-5 w-5" />
               </div>
               Offer Help & Donations
+            </Button>
+          </Link>
+
+          {/* Volunteer Sign-up */}
+          <Link href="/volunteers" className="flex-1">
+            <Button
+              className="
+                w-full justify-start gap-3 rounded-xl p-4
+                bg-gradient-to-r from-blue-500 to-blue-600 text-white
+                shadow-md hover:shadow-xl hover:scale-[1.02]
+                transition-all duration-200
+              "
+            >
+              <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
+                <HelpingHand className="h-5 w-5" />
+              </div>
+              Volunteer Sign-up
             </Button>
           </Link>
 

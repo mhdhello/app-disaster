@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, FileWarning, Heart, Map, Menu, Shield } from "lucide-react"
+import { LayoutDashboard, FileWarning, Heart, Map, Menu, Shield, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/report-damage", label: "Report Flood Damage", icon: FileWarning },
   { href: "/offer-help", label: "Offer Help & Donations", icon: Heart },
+  { href: "/volunteers", label: "Volunteers", icon: Users },
   { href: "/maps", label: "Maps", icon: Map },
   { href: "/admin", label: "Admin", icon: Shield },
 ]

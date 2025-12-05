@@ -12,7 +12,7 @@ interface MapComponentProps {
     popup?: string
     color?: string
     iconName?: string
-    type?: 'damage' | 'support'
+    type?: 'damage' | 'support' | 'volunteer'
   }>
   onMapClick?: (lat: number, lng: number) => void
   height?: string
@@ -38,11 +38,12 @@ const iconPaths: Record<string, string> = {
   Armchair: '<path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0z"/><path d="M5 18v2"/><path d="M19 18v2"/>',
   UtensilsCrossed: '<path d="m15.5 15.5 4 4"/><path d="m5 4 1.5 1.5"/><path d="M18 18c-1.5-1.5-2-5-2-5s-3.5-1.5-5-3l3-3c1.5 1.5 3 5 3 5s3.5 1.5 5 3z"/><path d="M13 10c-1.5-1.5-5-5-5-5l-2 2c4 4 5.5 6.5 5.5 6.5z"/><path d="M16 22s-4-4-6-6l-3 3c2 2 6 6 6 6z"/>',
   Heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>',
+  HelpingHand: '<path d="M4.71 13a11.18 11.18 0 0 0 3.2 3.2l2.37 1.5a3 3 0 0 0 3.3 0l.1-.06a1 1 0 0 0-.1-1.74l-1.75-.84a3 3 0 0 1-1.65-2.21L9.4 6.06A.57.57 0 0 1 10.33 6l.42 3.04a2 2 0 0 0 .8 1.28l.45.32a1 1 0 0 0 1.51-.49l1.25-3.75a.4.4 0 0 1 .77.15L15 10.1a2.28 2.28 0 0 0 1.22 2.4l1.73.86a1 1 0 0 0 1.45-.75l.6-3.69a.39.39 0 0 1 .76-.02L21.83 12A9.52 9.52 0 0 1 12 21.5h-.2A9.5 9.5 0 0 1 2.5 12v-.2A9.47 9.47 0 0 1 12 2.5h.2A9.47 9.47 0 0 1 21.5 12"/>',
 }
 
-function createCustomMarkerIcon(color: string, iconName?: string, type?: 'damage' | 'support') {
+function createCustomMarkerIcon(color: string, iconName?: string, type?: 'damage' | 'support' | 'volunteer') {
   const iconPath = iconName && iconPaths[iconName] ? iconPaths[iconName] : iconPaths['Home']
-  const pinColor = type === 'support' ? '#22c55e' : '#ef4444' // Green for support, red for damage
+  const pinColor = color || (type === 'support' ? '#22c55e' : type === 'volunteer' ? '#0ea5e9' : '#ef4444')
   
   return {
     className: "custom-marker-pin",

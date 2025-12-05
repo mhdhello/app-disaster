@@ -29,6 +29,57 @@ export interface DonorOffer {
   verifiedBy?: string
 }
 
+export interface VolunteerRegistration {
+  id: string
+  fullName: string
+  email: string
+  phone?: string
+  nic: string
+  district: string
+  province: string
+  location?: string
+  coordinates?: { lat: number; lng: number }
+  nicFrontImage?: string
+  nicBackImage?: string
+  skills?: string[]
+  availability?: string
+  preferredRole?: string
+  volunteerType?: "single" | "team"
+  teamSize?: number
+  groupLeaderName?: string
+  groupLeaderPhone?: string
+  teamMembers?: Array<{
+    fullName: string
+    email?: string
+    phone?: string
+    nic?: string
+    role?: string
+    roleOther?: string
+    skills?: string
+    responsibleName?: string
+    responsiblePhone?: string
+    responsibleRelation?: string
+    responsibleRelationOther?: string
+    nicFrontImage?: string
+    nicBackImage?: string
+  }>
+  responsiblePerson?: {
+    name: string
+    phone?: string
+    relation: string
+    relationOther?: string
+  }
+  responsiblePersons?: Array<{
+    name: string
+    phone?: string
+    relation: string
+    relationOther?: string
+  }>
+  data: Record<string, unknown>
+  status: "pending" | "verified" | "deployed"
+  submittedAt: Date
+}
+
 export interface AdminUser {
   id: string
   name: string
@@ -42,9 +93,11 @@ export interface AdminUser {
 interface StoreState {
   damageReports: DamageReport[]
   donorOffers: DonorOffer[]
+  volunteers: VolunteerRegistration[]
   adminUsers: AdminUser[]
   addDamageReport: (report: Omit<DamageReport, "id" | "timestamp" | "status">) => void
   addDonorOffer: (offer: Omit<DonorOffer, "id" | "timestamp" | "status">) => void
+  addVolunteer: (volunteer: Omit<VolunteerRegistration, "id" | "submittedAt" | "status">) => void
   updateReportStatus: (id: string, status: DamageReport["status"]) => void
   updateOfferStatus: (id: string, status: DonorOffer["status"]) => void
   verifyReport: (id: string, verifiedBy: string) => void
@@ -748,6 +801,77 @@ export const useStore = create<StoreState>((set) => ({
       },
     },
   ],
+  volunteers: [
+    {
+      id: "v1",
+      fullName: "Tharindu Perera",
+      email: "tharindu@example.com",
+      phone: "+94 77 1112233",
+      nic: "991234567V",
+      district: "Colombo",
+      province: "Western",
+      location: "Colombo, Wellawatte",
+      coordinates: { lat: 6.8746, lng: 79.86 },
+      skills: ["First aid", "Logistics", "Driving"],
+      availability: "Weekdays after 5pm, Weekends full day",
+      preferredRole: "Ground support",
+      nicFrontImage: "",
+      nicBackImage: "",
+      data: {
+        locationData: { lat: 6.8746, lng: 79.86, address: "Colombo, Wellawatte" },
+        district: "Colombo",
+        province: "Western",
+      },
+      status: "verified",
+      submittedAt: new Date("2024-12-01T08:15:00"),
+    },
+    {
+      id: "v2",
+      fullName: "Nethmi Karunaratne",
+      email: "nethmi@example.com",
+      phone: "+94 71 2223344",
+      nic: "200045678901",
+      district: "Galle",
+      province: "Southern",
+      location: "Galle City",
+      coordinates: { lat: 6.0535, lng: 80.221 },
+      skills: ["Medical/First aid", "Child care"],
+      availability: "Daily 9am - 6pm",
+      preferredRole: "Medical camp support",
+      nicFrontImage: "",
+      nicBackImage: "",
+      data: {
+        locationData: { lat: 6.0535, lng: 80.221, address: "Galle City" },
+        district: "Galle",
+        province: "Southern",
+      },
+      status: "pending",
+      submittedAt: new Date("2024-12-01T10:45:00"),
+    },
+    {
+      id: "v3",
+      fullName: "Ashan Silva",
+      email: "ashan.silva@example.com",
+      phone: "+94 75 3334455",
+      nic: "982233445V",
+      district: "Kandy",
+      province: "Central",
+      location: "Kandy, Peradeniya",
+      coordinates: { lat: 7.2697, lng: 80.5956 },
+      skills: ["Carpentry", "Plumbing", "General labor"],
+      availability: "Weekends, on-call emergencies",
+      preferredRole: "Shelter repairs",
+      nicFrontImage: "",
+      nicBackImage: "",
+      data: {
+        locationData: { lat: 7.2697, lng: 80.5956, address: "Kandy, Peradeniya" },
+        district: "Kandy",
+        province: "Central",
+      },
+      status: "deployed",
+      submittedAt: new Date("2024-12-01T13:20:00"),
+    },
+  ],
   addDamageReport: (report) =>
     set((state) => ({
       damageReports: [
@@ -769,6 +893,18 @@ export const useStore = create<StoreState>((set) => ({
           id: Date.now().toString(),
           timestamp: new Date(),
           status: "available",
+        },
+      ],
+    })),
+  addVolunteer: (volunteer) =>
+    set((state) => ({
+      volunteers: [
+        ...state.volunteers,
+        {
+          ...volunteer,
+          id: Date.now().toString(),
+          submittedAt: new Date(),
+          status: "pending",
         },
       ],
     })),

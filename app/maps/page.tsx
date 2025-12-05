@@ -28,6 +28,7 @@ import {
   DollarSign,
   Armchair,
   UtensilsCrossed,
+  HelpingHand,
 } from "lucide-react"
 
 const MapComponent = dynamic(() => import("@/components/map-component"), {
@@ -63,10 +64,13 @@ const donorCategories = [
   { id: "utensils", label: "Utensils", icon: UtensilsCrossed, iconName: "UtensilsCrossed", color: "#22c55e" },
 ]
 
+const volunteerCategory = { id: "volunteer-signups", label: "Volunteers", icon: HelpingHand, iconName: "HelpingHand", color: "#0ea5e9" }
+
 export default function MapsPage() {
-  const { damageReports, donorOffers } = useStore()
+  const { damageReports, donorOffers, volunteers } = useStore()
   const [showDamageReports, setShowDamageReports] = useState(true)
   const [showDonorOffers, setShowDonorOffers] = useState(true)
+  const [showVolunteers, setShowVolunteers] = useState(true)
   const [selectedDamageCategories, setSelectedDamageCategories] = useState<string[]>(damageCategories.map((c) => c.id))
   const [selectedDonorCategories, setSelectedDonorCategories] = useState<string[]>(donorCategories.map((c) => c.id))
 
@@ -79,12 +83,12 @@ export default function MapsPage() {
   }
 
   // Prepare markers for the map
-  const markers: Array<{ 
-    position: [number, number]; 
-    popup: string; 
+  const markers: Array<{
+    position: [number, number];
+    popup: string;
     color: string;
     iconName: string;
-    type: 'damage' | 'support';
+    type: 'damage' | 'support' | 'volunteer';
   }> = []
 
   if (showDamageReports) {
@@ -131,8 +135,30 @@ export default function MapsPage() {
       })
   }
 
+  if (showVolunteers) {
+    volunteers
+      .filter((v) => v.coordinates)
+      .forEach((volunteer) => {
+        markers.push({
+          position: [volunteer.coordinates!.lat, volunteer.coordinates!.lng],
+          popup: `
+            <div style="min-width: 200px;">
+              <strong style="color: ${volunteerCategory.color};">VOLUNTEER</strong>
+              <p style="margin: 8px 0 4px; font-size: 14px;">${volunteer.fullName}</p>
+              <p style="margin: 0; font-size: 12px; color: #666;">NIC: ${volunteer.nic}</p>
+              <p style="margin: 0; font-size: 12px; color: #666;">Status: ${volunteer.status}</p>
+            </div>
+          `,
+          color: volunteerCategory.color,
+          iconName: volunteerCategory.iconName,
+          type: 'volunteer',
+        })
+      })
+  }
+
   const damageCount = damageReports.filter((r) => r.coordinates && selectedDamageCategories.includes(r.category)).length
   const donorCount = donorOffers.filter((o) => o.coordinates && selectedDonorCategories.includes(o.category)).length
+  const volunteerCount = volunteers.filter((v) => v.coordinates).length
 
   return (
     <div className="min-h-screen bg-background">
@@ -221,6 +247,31 @@ export default function MapsPage() {
                       </div>
                     )
                   })}
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Volunteers */}
+            <Card className="bg-card border-border border-primary/20">
+              <CardHeader className="pb-3 bg-primary/10">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2 text-primary">
+                    <HelpingHand className="h-4 w-4" />
+                    Volunteers
+                  </CardTitle>
+                  <Checkbox checked={showVolunteers} onCheckedChange={(checked) => setShowVolunteers(!!checked)} />
+                </div>
+              </CardHeader>
+              {showVolunteers && (
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="volunteers-toggle" checked={showVolunteers} onCheckedChange={(checked) => setShowVolunteers(!!checked)} />
+                    <Label htmlFor="volunteers-toggle" className="text-sm text-foreground cursor-pointer flex items-center gap-1">
+                      <HelpingHand className="h-3.5 w-3.5 text-primary" />
+                      Volunteer sign-ups
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">Showing {volunteerCount} volunteers with locations</p>
                 </CardContent>
               )}
             </Card>
