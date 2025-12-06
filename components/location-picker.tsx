@@ -109,17 +109,24 @@ export function LocationPicker({ value, onChange, label = "Location", required }
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
           )
           const data = await response.json()
-          onChange({
+          const locationData = {
             lat: latitude,
             lng: longitude,
             address: data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-          })
+          }
+          // Use setTimeout to ensure state update happens after geolocation completes
+          setTimeout(() => {
+            onChange(locationData)
+          }, 100)
         } catch {
-          onChange({
+          const locationData = {
             lat: latitude,
             lng: longitude,
             address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-          })
+          }
+          setTimeout(() => {
+            onChange(locationData)
+          }, 100)
         }
         setIsLocating(false)
       }
@@ -268,13 +275,13 @@ export function LocationPicker({ value, onChange, label = "Location", required }
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <div className="rounded-lg border border-border overflow-hidden relative">
+      <div className="rounded-lg border border-border overflow-hidden relative z-0">
         <MapComponent
           center={value ? [value.lat, value.lng] : [7.8731, 80.7718]}
           zoom={value ? 15 : 8}
           marker={value ? [value.lat, value.lng] : undefined}
           onMapClick={handleMapClick}
-          height="300px"
+          height="400px"
           overlayControls={
             <div className="absolute top-3 right-3 w-64">
               {/* Search Bar */}
@@ -310,7 +317,7 @@ export function LocationPicker({ value, onChange, label = "Location", required }
                   </div>
                 )}
                 {searchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-background/95 backdrop-blur-sm border border-border rounded-md shadow-lg max-h-60 overflow-y-auto z-10">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-background/95 backdrop-blur-sm border border-border rounded-md shadow-lg max-h-60 overflow-y-auto z-50">
                     {searchResults.map((result, index) => (
                       <button
                         key={index}

@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "../damage/province-district-selector"
 
 interface UtensilsFormProps {
   formData: Record<string, unknown>
@@ -103,15 +105,24 @@ export function UtensilsForm({ formData, onChange }: UtensilsFormProps) {
         </div>
       </div>
 
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
+
+      <LocationPicker
+        label="Location"
+        required
+        value={formData.locationData as { lat: number; lng: number; address?: string } | undefined}
+        onChange={(location) => updateField("locationData", location)}
+      />
+
       <div className="space-y-2">
-        <Label htmlFor="location" className="text-foreground">
-          Location <span className="text-destructive">*</span>
+        <Label htmlFor="address" className="text-foreground">
+          Nearby Landmark or Address
         </Label>
         <Textarea
-          id="location"
-          placeholder="Enter your address"
-          value={(formData.location as string) || ""}
-          onChange={(e) => updateField("location", e.target.value)}
+          id="address"
+          placeholder="Enter additional address details"
+          value={(formData.address as string) || ""}
+          onChange={(e) => updateField("address", e.target.value)}
           className="bg-input border-border text-foreground"
         />
       </div>

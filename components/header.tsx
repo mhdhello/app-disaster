@@ -14,7 +14,7 @@ const navItems = [
   { href: "/report-damage", label: "Report Flood Damage", icon: FileWarning },
   { href: "/offer-help", label: "Offer Help & Donations", icon: Heart },
   { href: "/volunteers", label: "Volunteers", icon: Users },
-  { href: "/maps", label: "Maps", icon: Map },
+  // { href: "/maps", label: "Maps", icon: Map },
   { href: "/admin", label: "Admin", icon: Shield },
 ]
 
@@ -95,7 +95,7 @@ export function Header() {
                         />
                       </div>
                       <div>
-                        <h2 className="text-lg font-bold text-foreground">SL Flood Relief</h2>
+                        <h2 className="text-lg font-bold text-foreground">Rise Up Sri Lanka</h2>
                         <p className="text-xs text-muted-foreground">Emergency Portal</p>
                       </div>
                     </div>

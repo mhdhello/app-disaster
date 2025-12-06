@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ProvinceDistrictSelector } from "../damage/province-district-selector"
 
 interface ElectricitySupportFormProps {
   formData: Record<string, unknown>
@@ -73,6 +74,8 @@ export function ElectricitySupportForm({ formData, onChange }: ElectricitySuppor
           ))}
         </div>
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <div className="space-y-2">
         <Label htmlFor="equipment" className="text-foreground">

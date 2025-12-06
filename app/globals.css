@@ -132,6 +132,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -140,4 +141,33 @@
 /* Hide Leaflet attribution */
 .leaflet-control-attribution {
   display: none !important;
+}
+
+/* Ensure Leaflet map containers are properly contained */
+.leaflet-container {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-control {
+  z-index: 10 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 10 !important;
+}
+
+/* Ensure location picker marker is visible but contained */
+.location-picker-marker {
+  z-index: 100 !important;
+}
+
+.location-picker-marker>div {
+  z-index: 100 !important;
+  pointer-events: none;
 }

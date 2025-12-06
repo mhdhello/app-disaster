@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "./province-district-selector"
 
 interface RoadsFormProps {
   formData: Record<string, unknown>
@@ -46,6 +47,8 @@ export function RoadsForm({ formData, onChange }: RoadsFormProps) {
           </Select>
         </div>
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <LocationPicker
         label="GPS Location"

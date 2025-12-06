@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "./province-district-selector"
 
 interface TelecomFormProps {
   formData: Record<string, unknown>
@@ -54,6 +55,8 @@ export function TelecomForm({ formData, onChange }: TelecomFormProps) {
           />
         </div>
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <LocationPicker
         label="Location"

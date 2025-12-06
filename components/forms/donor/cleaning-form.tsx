@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "../damage/province-district-selector"
 
 interface CleaningFormProps {
   formData: Record<string, unknown>
@@ -126,6 +127,8 @@ export function CleaningForm({ formData, onChange }: CleaningFormProps) {
           className="bg-input border-border text-foreground"
         />
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <LocationPicker
         label="Location"

@@ -163,7 +163,34 @@ export default function MapComponent({
 
     // Add initial marker if provided
     if (marker) {
-      markerRef.current = L.marker(marker).addTo(map)
+      const clampedLat = Math.max(5.9, Math.min(9.8, marker[0]))
+      const clampedLng = Math.max(79.7, Math.min(81.9, marker[1]))
+      
+      // Create a custom icon for the location picker marker
+      const customIcon = L.divIcon({
+        className: "location-picker-marker",
+        html: `
+          <div style="position: relative; width: 40px; height: 50px;">
+            <svg width="40" height="50" viewBox="0 0 40 50" style="position: absolute; top: 0; left: 0;">
+              <path d="M20 0C8.954 0 0 8.954 0 20c0 11.046 20 30 20 30s20-18.954 20-30C40 8.954 31.046 0 20 0z" 
+                    fill="#3b82f6" 
+                    stroke="white" 
+                    stroke-width="2.5"/>
+            </svg>
+            <div style="position: absolute; top: 3px; left: 50%; transform: translateX(-50%); width: 28px; height: 28px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.4); border: 3px solid white;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        iconSize: [40, 50],
+        iconAnchor: [20, 50],
+        popupAnchor: [0, -50],
+      })
+      
+      markerRef.current = L.marker([clampedLat, clampedLng], { icon: customIcon }).addTo(map)
     }
 
     // Add initial markers if provided
@@ -199,7 +226,18 @@ export default function MapComponent({
       const clampedLat = Math.max(5.9, Math.min(9.8, center[0]))
       const clampedLng = Math.max(79.7, Math.min(81.9, center[1]))
       
-      mapInstanceRef.current.setView([clampedLat, clampedLng], zoom)
+      // Only update if center actually changed to avoid unnecessary re-renders
+      const currentCenter = mapInstanceRef.current.getCenter()
+      const centerChanged = 
+        Math.abs(currentCenter.lat - clampedLat) > 0.0001 ||
+        Math.abs(currentCenter.lng - clampedLng) > 0.0001
+      
+      if (centerChanged || mapInstanceRef.current.getZoom() !== zoom) {
+        mapInstanceRef.current.setView([clampedLat, clampedLng], zoom, {
+          animate: true,
+          duration: 0.5,
+        })
+      }
     }
   }, [center, zoom, isLoaded, L])
 
@@ -207,13 +245,61 @@ export default function MapComponent({
   useEffect(() => {
     if (!mapInstanceRef.current || !isLoaded || !L) return
 
+    // Remove existing marker
     if (markerRef.current) {
       markerRef.current.remove()
       markerRef.current = null
     }
 
     if (marker) {
-      markerRef.current = L.marker(marker).addTo(mapInstanceRef.current)
+      // Ensure marker coordinates are within Sri Lanka bounds
+      const clampedLat = Math.max(5.9, Math.min(9.8, marker[0]))
+      const clampedLng = Math.max(79.7, Math.min(81.9, marker[1]))
+      
+      // Create a custom icon for the location picker marker
+      const customIcon = L.divIcon({
+        className: "location-picker-marker",
+        html: `
+          <div style="position: relative; width: 40px; height: 50px; z-index: 1000;">
+            <svg width="40" height="50" viewBox="0 0 40 50" style="position: absolute; top: 0; left: 0; z-index: 1000;">
+              <path d="M20 0C8.954 0 0 8.954 0 20c0 11.046 20 30 20 30s20-18.954 20-30C40 8.954 31.046 0 20 0z" 
+                    fill="#3b82f6" 
+                    stroke="white" 
+                    stroke-width="2.5"/>
+            </svg>
+            <div style="position: absolute; top: 3px; left: 50%; transform: translateX(-50%); width: 28px; height: 28px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.4); border: 3px solid white; z-index: 1001;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        iconSize: [40, 50],
+        iconAnchor: [20, 50],
+        popupAnchor: [0, -50],
+      })
+      
+      // Add marker to map
+      markerRef.current = L.marker([clampedLat, clampedLng], { 
+        icon: customIcon,
+        zIndexOffset: 1000,
+        riseOnHover: true,
+      }).addTo(mapInstanceRef.current)
+      
+      // Pan map to marker with smooth animation
+      const currentZoom = mapInstanceRef.current.getZoom()
+      const targetZoom = Math.max(currentZoom, 15)
+      
+      // Use a small delay to ensure marker is added before panning
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([clampedLat, clampedLng], targetZoom, {
+            animate: true,
+            duration: 0.8,
+          })
+        }
+      }, 100)
     }
   }, [marker, isLoaded, L])
 
@@ -254,10 +340,10 @@ export default function MapComponent({
   }
 
   return (
-    <div style={{ height, width: "100%" }} className="rounded-lg relative">
-      <div ref={mapRef} style={{ height, width: "100%" }} className="rounded-lg" />
+    <div style={{ height, width: "100%" }} className="rounded-lg relative z-0">
+      <div ref={mapRef} style={{ height, width: "100%" }} className="rounded-lg z-0" />
       {overlayControls && (
-        <div className="absolute inset-0 pointer-events-none z-[1000]">
+        <div className="absolute inset-0 pointer-events-none z-10">
           <div className="pointer-events-auto">{overlayControls}</div>
         </div>
       )}

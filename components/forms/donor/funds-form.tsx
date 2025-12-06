@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ProvinceDistrictSelector } from "../damage/province-district-selector"
 
 interface FundsFormProps {
   formData: Record<string, unknown>
@@ -42,6 +43,8 @@ export function FundsForm({ formData, onChange }: FundsFormProps) {
           />
         </div>
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">

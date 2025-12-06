@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "./province-district-selector"
 
 interface HospitalsFormProps {
   formData: Record<string, unknown>
@@ -46,6 +47,8 @@ export function HospitalsForm({ formData, onChange }: HospitalsFormProps) {
           />
         </div>
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <LocationPicker
         label="Location"

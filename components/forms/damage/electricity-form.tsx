@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "./province-district-selector"
 
 interface ElectricityFormProps {
   formData: Record<string, unknown>
@@ -20,6 +21,8 @@ export function ElectricityForm({ formData, onChange }: ElectricityFormProps) {
 
   return (
     <div className="space-y-6">
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
+
       <LocationPicker
         label="Location"
         required

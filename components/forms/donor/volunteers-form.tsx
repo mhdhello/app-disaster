@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "../damage/province-district-selector"
 
 interface VolunteersFormProps {
   formData: Record<string, unknown>
@@ -111,6 +112,8 @@ export function VolunteersForm({ formData, onChange }: VolunteersFormProps) {
           className="bg-input border-border text-foreground"
         />
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <LocationPicker
         label="Your Base Location"

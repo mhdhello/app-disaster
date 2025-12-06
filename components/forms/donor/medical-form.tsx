@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "../damage/province-district-selector"
 
 interface MedicalFormProps {
   formData: Record<string, unknown>
@@ -114,6 +115,8 @@ export function MedicalForm({ formData, onChange }: MedicalFormProps) {
           />
         </div>
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <LocationPicker
         label="Location"

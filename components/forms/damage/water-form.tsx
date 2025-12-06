@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { LocationPicker } from "@/components/location-picker"
+import { ProvinceDistrictSelector } from "./province-district-selector"
 
 interface WaterFormProps {
   formData: Record<string, unknown>
@@ -47,6 +48,8 @@ export function WaterForm({ formData, onChange }: WaterFormProps) {
           />
         </div>
       </div>
+
+      <ProvinceDistrictSelector formData={formData} onChange={onChange} />
 
       <LocationPicker
         label="GPS Location"
