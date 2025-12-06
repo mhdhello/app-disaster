@@ -93,11 +93,11 @@ export default function MapsPage() {
 
   if (showDamageReports) {
     damageReports
-      .filter((r) => r.coordinates && selectedDamageCategories.includes(r.category))
+      .filter((r) => r.lat !== undefined && r.lat !== null && r.lon !== undefined && r.lon !== null && selectedDamageCategories.includes(r.category))
       .forEach((report) => {
         const category = damageCategories.find((c) => c.id === report.category)
         markers.push({
-          position: [report.coordinates!.lat, report.coordinates!.lng],
+          position: [report.lat!, report.lon!],
           popup: `
             <div style="min-width: 200px;">
               <strong style="color: ${category?.color || "#ef4444"};">${report.category.toUpperCase()} DAMAGE</strong>
@@ -156,7 +156,7 @@ export default function MapsPage() {
       })
   }
 
-  const damageCount = damageReports.filter((r) => r.coordinates && selectedDamageCategories.includes(r.category)).length
+  const damageCount = damageReports.filter((r) => r.lat !== undefined && r.lat !== null && r.lon !== undefined && r.lon !== null && selectedDamageCategories.includes(r.category)).length
   const donorCount = donorOffers.filter((o) => o.coordinates && selectedDonorCategories.includes(o.category)).length
   const volunteerCount = volunteers.filter((v) => v.coordinates).length
 

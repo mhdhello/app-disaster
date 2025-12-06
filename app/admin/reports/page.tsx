@@ -361,11 +361,11 @@ export default function AdminReportsPage() {
                     <p className="text-foreground">{selectedReport.location}</p>
                   </div>
 
-                  {selectedReport.coordinates && (
+                  {selectedReport.lat !== undefined && selectedReport.lat !== null && selectedReport.lon !== undefined && selectedReport.lon !== null && (
                     <div className="sm:col-span-2">
                       <p className="text-sm font-medium text-muted-foreground">Coordinates</p>
                       <p className="text-foreground">
-                        {selectedReport.coordinates.lat}, {selectedReport.coordinates.lng}
+                        {selectedReport.lat}, {selectedReport.lon}
                       </p>
                     </div>
                   )}

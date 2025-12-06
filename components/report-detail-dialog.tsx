@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   FileText,
   ExternalLink,
+  Image as ImageIcon,
 } from "lucide-react"
 import type { DamageReport } from "@/lib/store"
 import MapComponent from "@/components/map-component"
@@ -201,7 +202,9 @@ export function ReportDetailDialog({ report, open, onOpenChange }: ReportDetailD
 
   // Get location data from report
   const locationData = (report.data?.locationData as { lat: number; lng: number; address?: string }) || 
-                       (report.coordinates ? { lat: report.coordinates.lat, lng: report.coordinates.lng, address: report.location } : undefined)
+                       ((report.lat !== undefined && report.lat !== null && report.lon !== undefined && report.lon !== null) 
+                         ? { lat: report.lat, lng: report.lon, address: report.location } 
+                         : undefined)
 
   // Filter out internal fields from display
   const displayData = Object.entries(report.data || {}).filter(([key]) => !["locationData"].includes(key))
@@ -275,6 +278,42 @@ export function ReportDetailDialog({ report, open, onOpenChange }: ReportDetailD
             )}
 
             <Separator />
+
+            {/* Photos Section */}
+            {report.photoPaths && report.photoPaths.length > 0 && (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <ImageIcon className="h-4 w-4" />
+                    Damage Photos ({report.photoPaths.length})
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {report.photoPaths.map((photoPath, idx) => (
+                      <div
+                        key={idx}
+                        className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted group cursor-pointer"
+                        onClick={() => {
+                          // Open image in new tab for full view
+                          window.open(`/api/images/${photoPath}`, "_blank")
+                        }}
+                      >
+                        <img
+                          src={`/api/images/${photoPath}`}
+                          alt={`Damage photo ${idx + 1}`}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          onError={(e) => {
+                            // Show placeholder on error
+                            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext fill='%23999' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EImage not found%3C/text%3E%3C/svg%3E"
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
 
             {/* Time */}
             <div className="space-y-1">

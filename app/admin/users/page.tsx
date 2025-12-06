@@ -22,6 +22,7 @@ import {
   Eye,
   Mail,
   Calendar,
+  Loader2,
 } from "lucide-react"
 import {
   Dialog,
@@ -72,6 +73,9 @@ export default function AdminUsersPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showEditPassword, setShowEditPassword] = useState(false)
   const [initializing, setInitializing] = useState(false)
+  const [addingUser, setAddingUser] = useState(false)
+  const [updatingUser, setUpdatingUser] = useState(false)
+  const [deletingUser, setDeletingUser] = useState<string | null>(null)
 
   // Initialize default admin user on mount if needed
   useEffect(() => {
@@ -170,50 +174,67 @@ export default function AdminUsersPage() {
       return
     }
 
+    if (!formData.password || formData.password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setAddingUser(true)
+    const tempId = `temp-${Date.now()}`
+    
+    // Save form data before clearing
+    const userFormData = { ...formData }
+    
+    const newUser: AdminUser = {
+      id: tempId,
+      name: userFormData.name,
+      email: userFormData.email,
+      role: userFormData.role,
+      active: userFormData.active,
+      createdAt: new Date(),
+    }
+
+    // Optimistic update - add user immediately to UI
+    setAdminUsers((prev) => [newUser, ...prev])
+    setFormData({ name: "", email: "", password: "", role: "viewer", active: true })
+    setDialogOpen(false)
+
     try {
       const userData = {
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        active: formData.active,
+        name: userFormData.name,
+        email: userFormData.email,
+        password: userFormData.password,
+        role: userFormData.role,
+        active: userFormData.active,
         createdAt: Timestamp.now(),
       }
 
-      await addDoc(collection(db, COLLECTION_NAME), userData)
+      const docRef = await addDoc(collection(db, COLLECTION_NAME), userData)
+      
+      // Update with real ID from database
+      setAdminUsers((prev) =>
+        prev.map((user) => (user.id === tempId ? { ...user, id: docRef.id } : user))
+      )
       
       toast({
         title: "User Added",
         description: "New admin user has been added successfully.",
       })
-      
-      setFormData({ name: "", email: "", password: "", role: "viewer", active: true })
-      setDialogOpen(false)
-      
-      // Reload users
-      const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
-      const querySnapshot = await getDocs(q)
-      const users: AdminUser[] = []
-      querySnapshot.forEach((docSnapshot) => {
-        const data = docSnapshot.data()
-        users.push({
-          id: docSnapshot.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          lastLogin: data.lastLogin?.toDate(),
-          active: data.active ?? true,
-          firebaseUid: data.firebaseUid,
-        })
-      })
-      setAdminUsers(users)
     } catch (error) {
       console.error("Error adding user:", error)
+      // Rollback optimistic update on error
+      setAdminUsers((prev) => prev.filter((user) => user.id !== tempId))
       toast({
         title: "Error",
         description: "Failed to add user. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setAddingUser(false)
     }
   }
 
@@ -251,6 +272,28 @@ export default function AdminUsersPage() {
       return
     }
 
+    setUpdatingUser(true)
+    const originalUser = selectedUser
+    
+    // Save form data before clearing
+    const userFormData = { ...formData }
+    
+    const updatedUser: AdminUser = {
+      ...selectedUser,
+      name: userFormData.name,
+      email: userFormData.email,
+      role: userFormData.role,
+      active: userFormData.active,
+    }
+
+    // Optimistic update - update user immediately in UI
+    setAdminUsers((prev) =>
+      prev.map((user) => (user.id === selectedUser.id ? updatedUser : user))
+    )
+    setEditDialogOpen(false)
+    setSelectedUser(null)
+    setFormData({ name: "", email: "", password: "", role: "viewer", active: true })
+
     try {
       // Call API route to update user
       const response = await fetch("/api/admin/users", {
@@ -260,11 +303,11 @@ export default function AdminUsersPage() {
         },
         body: JSON.stringify({
           id: selectedUser.id,
-          name: formData.name,
-          email: formData.email,
-          password: formData.password || undefined, // Only send if provided
-          role: formData.role,
-          active: formData.active,
+          name: userFormData.name,
+          email: userFormData.email,
+          password: userFormData.password || undefined, // Only send if provided
+          role: userFormData.role,
+          active: userFormData.active,
           firebaseUid: selectedUser.firebaseUid,
         }),
       })
@@ -279,41 +322,30 @@ export default function AdminUsersPage() {
         title: "User Updated",
         description: "User information has been updated successfully.",
       })
-      
-      setEditDialogOpen(false)
-      setSelectedUser(null)
-      setFormData({ name: "", email: "", password: "", role: "viewer", active: true })
-      
-      // Reload users
-      const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
-      const querySnapshot = await getDocs(q)
-      const users: AdminUser[] = []
-      querySnapshot.forEach((docSnapshot) => {
-        const data = docSnapshot.data()
-        users.push({
-          id: docSnapshot.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          lastLogin: data.lastLogin?.toDate(),
-          active: data.active ?? true,
-          firebaseUid: data.firebaseUid,
-        })
-      })
-      setAdminUsers(users)
     } catch (error: any) {
       console.error("Error updating user:", error)
+      // Rollback optimistic update on error
+      setAdminUsers((prev) =>
+        prev.map((user) => (user.id === selectedUser.id ? originalUser : user))
+      )
       toast({
         title: "Error",
         description: error.message || "Failed to update user. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setUpdatingUser(false)
     }
   }
 
   const handleDeleteUser = async (id: string) => {
     if (!confirm("Are you sure you want to delete this user?")) return
+
+    setDeletingUser(id)
+    const deletedUser = adminUsers.find((user) => user.id === id)
+
+    // Optimistic update - remove user immediately from UI
+    setAdminUsers((prev) => prev.filter((user) => user.id !== id))
 
     try {
       await deleteDoc(doc(db, COLLECTION_NAME, id))
@@ -322,32 +354,22 @@ export default function AdminUsersPage() {
         title: "User Deleted",
         description: "User has been deleted successfully.",
       })
-      
-      // Reload users
-      const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
-      const querySnapshot = await getDocs(q)
-      const users: AdminUser[] = []
-      querySnapshot.forEach((docSnapshot) => {
-        const data = docSnapshot.data()
-        users.push({
-          id: docSnapshot.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          lastLogin: data.lastLogin?.toDate(),
-          active: data.active ?? true,
-          firebaseUid: data.firebaseUid,
-        })
-      })
-      setAdminUsers(users)
     } catch (error) {
       console.error("Error deleting user:", error)
+      // Rollback optimistic update on error
+      if (deletedUser) {
+        setAdminUsers((prev) => {
+          const updated = [...prev, deletedUser]
+          return updated.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        })
+      }
       toast({
         title: "Error",
         description: "Failed to delete user. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setDeletingUser(null)
     }
   }
 
@@ -513,8 +535,15 @@ export default function AdminUsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleAddUser} className="w-full">
-                Add User
+              <Button onClick={handleAddUser} className="w-full" disabled={addingUser}>
+                {addingUser ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add User"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -592,10 +621,20 @@ export default function AdminUsersPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteUser(user.id)}
+                      disabled={deletingUser === user.id}
                       className="gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
+                      {deletingUser === user.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -680,8 +719,15 @@ export default function AdminUsersPage() {
               />
               <Label htmlFor="edit-active">Active</Label>
             </div>
-            <Button onClick={handleUpdateUser} className="w-full">
-              Update User
+            <Button onClick={handleUpdateUser} className="w-full" disabled={updatingUser}>
+              {updatingUser ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update User"
+              )}
             </Button>
           </div>
         </DialogContent>

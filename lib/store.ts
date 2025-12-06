@@ -1,17 +1,25 @@
 import { create } from "zustand"
+import { 
+  addDamageReportToFirebase, 
+  getDamageReportsFromFirebase, 
+  updateDamageReportStatus,
+  verifyDamageReport 
+} from "./firebase-damage-reports"
 
 export interface DamageReport {
   id: string
   category: string
   timestamp: Date
   location: string
-  coordinates?: { lat: number; lng: number }
+  lat?: number | null
+  lon?: number | null
   severity: string
   data: Record<string, unknown>
   status: "pending" | "reviewed" | "assigned" | "resolved"
   verified?: boolean
   verifiedAt?: Date
   verifiedBy?: string
+  photoPaths?: string[]
 }
 
 export interface DonorOffer {
@@ -95,19 +103,22 @@ interface StoreState {
   donorOffers: DonorOffer[]
   volunteers: VolunteerRegistration[]
   adminUsers: AdminUser[]
-  addDamageReport: (report: Omit<DamageReport, "id" | "timestamp" | "status">) => void
+  isLoadingReports: boolean
+  addDamageReport: (report: Omit<DamageReport, "id" | "timestamp" | "status" | "photoPaths">, photos?: FileList | null) => Promise<void>
+  loadDamageReports: () => Promise<void>
   addDonorOffer: (offer: Omit<DonorOffer, "id" | "timestamp" | "status">) => void
   addVolunteer: (volunteer: Omit<VolunteerRegistration, "id" | "submittedAt" | "status">) => void
-  updateReportStatus: (id: string, status: DamageReport["status"]) => void
+  updateReportStatus: (id: string, status: DamageReport["status"]) => Promise<void>
   updateOfferStatus: (id: string, status: DonorOffer["status"]) => void
-  verifyReport: (id: string, verifiedBy: string) => void
+  verifyReport: (id: string, verifiedBy: string) => Promise<void>
   verifyOffer: (id: string, verifiedBy: string) => void
   addAdminUser: (user: Omit<AdminUser, "id" | "createdAt">) => void
   updateAdminUser: (id: string, updates: Partial<AdminUser>) => void
   deleteAdminUser: (id: string) => void
 }
 
-export const useStore = create<StoreState>((set) => ({
+export const useStore = create<StoreState>((set, get) => ({
+  isLoadingReports: false,
   damageReports: [
     // Houses / Residential
     {
@@ -872,18 +883,37 @@ export const useStore = create<StoreState>((set) => ({
       submittedAt: new Date("2024-12-01T13:20:00"),
     },
   ],
-  addDamageReport: (report) =>
-    set((state) => ({
-      damageReports: [
-        ...state.damageReports,
-        {
-          ...report,
-          id: Date.now().toString(),
-          timestamp: new Date(),
-          status: "pending",
-        },
-      ],
-    })),
+  addDamageReport: async (report, photos) => {
+    try {
+      const reportId = await addDamageReportToFirebase(report, photos)
+      const newReport: DamageReport = {
+        ...report,
+        id: reportId,
+        timestamp: new Date(),
+        status: "pending",
+        photoPaths: [],
+      }
+      set((state) => ({
+        damageReports: [newReport, ...state.damageReports],
+      }))
+      // Reload to get the photo paths
+      await get().loadDamageReports()
+    } catch (error) {
+      console.error("Error adding damage report:", error)
+      throw error
+    }
+  },
+  loadDamageReports: async () => {
+    set({ isLoadingReports: true })
+    try {
+      const reports = await getDamageReportsFromFirebase()
+      set({ damageReports: reports, isLoadingReports: false })
+    } catch (error) {
+      console.error("Error loading damage reports:", error)
+      set({ isLoadingReports: false })
+      throw error
+    }
+  },
   addDonorOffer: (offer) =>
     set((state) => ({
       donorOffers: [
@@ -908,22 +938,36 @@ export const useStore = create<StoreState>((set) => ({
         },
       ],
     })),
-  updateReportStatus: (id, status) =>
-    set((state) => ({
-      damageReports: state.damageReports.map((report) => (report.id === id ? { ...report, status } : report)),
-    })),
+  updateReportStatus: async (id, status) => {
+    try {
+      await updateDamageReportStatus(id, status)
+      set((state) => ({
+        damageReports: state.damageReports.map((report) => (report.id === id ? { ...report, status } : report)),
+      }))
+    } catch (error) {
+      console.error("Error updating report status:", error)
+      throw error
+    }
+  },
   updateOfferStatus: (id, status) =>
     set((state) => ({
       donorOffers: state.donorOffers.map((offer) => (offer.id === id ? { ...offer, status } : offer)),
     })),
-  verifyReport: (id, verifiedBy) =>
-    set((state) => ({
-      damageReports: state.damageReports.map((report) =>
-        report.id === id
-          ? { ...report, verified: true, verifiedAt: new Date(), verifiedBy }
-          : report
-      ),
-    })),
+  verifyReport: async (id, verifiedBy) => {
+    try {
+      await verifyDamageReport(id, verifiedBy)
+      set((state) => ({
+        damageReports: state.damageReports.map((report) =>
+          report.id === id
+            ? { ...report, verified: true, verifiedAt: new Date(), verifiedBy }
+            : report
+        ),
+      }))
+    } catch (error) {
+      console.error("Error verifying report:", error)
+      throw error
+    }
+  },
   verifyOffer: (id, verifiedBy) =>
     set((state) => ({
       donorOffers: state.donorOffers.map((offer) =>

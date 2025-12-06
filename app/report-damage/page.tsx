@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ import {
   Clock,
   AlertTriangle,
   Eye,
+  Image as ImageIcon,
 } from "lucide-react"
 
 import { HousesForm } from "@/components/forms/damage/houses-form"
@@ -111,8 +112,20 @@ export default function ReportDamagePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedReport, setSelectedReport] = useState<DamageReport | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const { damageReports, addDamageReport } = useStore()
+  const { damageReports, addDamageReport, loadDamageReports, isLoadingReports } = useStore()
   const { toast } = useToast()
+
+  // Load reports from Firebase on mount
+  useEffect(() => {
+    loadDamageReports().catch((error) => {
+      console.error("Error loading damage reports:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load damage reports. Please refresh the page.",
+        variant: "destructive",
+      })
+    })
+  }, [loadDamageReports, toast])
 
   const handleViewReport = (report: DamageReport) => {
     setSelectedReport(report)
@@ -124,26 +137,63 @@ export default function ReportDamagePage() {
 
     setIsSubmitting(true)
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const locationData = formData.locationData as { lat: number; lng: number; address?: string } | undefined
+      const photos = formData.photos as FileList | null
 
-    const locationData = formData.locationData as { lat: number; lng: number; address?: string } | undefined
+      // Create a clean copy of formData without the FileList (which can't be stored in Firestore)
+      // Remove photos FileList but keep all other form fields including locationData
+      const { photos: _, ...cleanFormData } = formData
 
-    addDamageReport({
-      category: selectedCategory,
-      location: locationData?.address || (formData.location as string) || "Location not specified",
-      coordinates: locationData ? { lat: locationData.lat, lng: locationData.lng } : undefined,
-      severity: (formData.severity as string) || "unknown",
-      data: formData,
-    })
+      // Ensure locationData is properly set (it should already be in cleanFormData, but ensure it's correct)
+      if (locationData) {
+        cleanFormData.locationData = locationData
+      }
 
-    toast({
-      title: "Report Submitted",
-      description: "Your damage report has been submitted successfully. Help is on the way.",
-    })
+      // All form fields are now in cleanFormData, including:
+      // - Common fields: province, district, address, locationData
+      // - Category-specific fields: varies by category (fullName, contact, institutionName, etc.)
+      // - All checkbox arrays: vulnerablePersons, damageTypes, issueTypes, etc.
+      const reportData = cleanFormData
 
-    setFormData({})
-    setSelectedCategory(null)
-    setIsSubmitting(false)
+      // Debug: log the report payload (cleaned) so we can inspect missing fields
+      try {
+        // stringify safely by removing potential non-serializable items
+        const safe = JSON.parse(JSON.stringify(reportData))
+        console.log("Submitting damage report data:", { category: selectedCategory, data: safe, severity: (formData.severity as string) || "unknown" })
+      } catch (err) {
+        console.log("Submitting damage report data (non-serializable) - sending anyway", { category: selectedCategory })
+      }
+
+      await addDamageReport(
+        {
+          category: selectedCategory,
+          location: locationData?.address || (formData.location as string) || "Location not specified",
+          lat: locationData?.lat !== undefined ? locationData.lat : null,
+          lon: locationData?.lng !== undefined ? locationData.lng : null,
+          severity: (formData.severity as string) || "unknown",
+          data: reportData,
+        },
+        photos
+      )
+
+      toast({
+        title: "Report Submitted",
+        description: "Your damage report has been submitted successfully. Help is on the way.",
+      })
+
+      setFormData({})
+      setSelectedCategory(null)
+    } catch (error) {
+      console.error("Error submitting report:", error)
+      toast({
+        title: "Error",
+        description: "Failed to submit damage report. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const selectedCategoryData = categories.find((c) => c.id === selectedCategory)
@@ -175,10 +225,18 @@ export default function ReportDamagePage() {
 
           <TabsContent value="view" className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs sm:text-sm text-muted-foreground">Showing {damageReports.length} damage reports</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {isLoadingReports ? "Loading..." : `Showing ${damageReports.length} damage reports`}
+              </p>
             </div>
 
-            {damageReports.length === 0 ? (
+            {isLoadingReports ? (
+              <Card className="bg-card border-border">
+                <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+                  <p className="text-muted-foreground text-sm sm:text-base">Loading damage reports...</p>
+                </CardContent>
+              </Card>
+            ) : damageReports.length === 0 ? (
               <Card className="bg-card border-border">
                 <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
                   <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
@@ -234,6 +292,50 @@ export default function ReportDamagePage() {
                                 </Badge>
                               </div>
                             </div>
+                            {/* Display images if available */}
+                            {report.photoPaths && report.photoPaths.length > 0 && (
+                              <div className="mt-3 space-y-2">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <ImageIcon className="h-3.5 w-3.5" />
+                                  <span>{report.photoPaths.length} photo{report.photoPaths.length > 1 ? "s" : ""}</span>
+                                </div>
+                                <div className="flex gap-2 overflow-x-auto pb-1">
+                                  {report.photoPaths.slice(0, 3).map((photoPath, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 rounded-md overflow-hidden border border-border bg-muted"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleViewReport(report)
+                                      }}
+                                    >
+                                      <img
+                                        src={`/api/images/${photoPath}`}
+                                        alt={`Damage photo ${idx + 1}`}
+                                        className="h-full w-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                        onError={(e) => {
+                                          // Hide image on error
+                                          e.currentTarget.style.display = "none"
+                                        }}
+                                      />
+                                    </div>
+                                  ))}
+                                  {report.photoPaths.length > 3 && (
+                                    <div
+                                      className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 rounded-md border border-border bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleViewReport(report)
+                                      }}
+                                    >
+                                      <span className="text-xs font-medium text-muted-foreground">
+                                        +{report.photoPaths.length - 3}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                             <div className="mt-3 flex justify-end">
                               <Button
                                 variant="outline"
