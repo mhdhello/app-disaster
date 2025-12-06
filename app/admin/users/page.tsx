@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useStore, type AdminUser } from "@/lib/store"
+import { db } from "@/lib/firebase"
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, Timestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { useAdminStore } from "@/lib/admin-store"
 import {
@@ -38,8 +39,22 @@ const roleColors: Record<string, string> = {
   viewer: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
 }
 
+export interface AdminUser {
+  id: string
+  name: string
+  email: string
+  role: "admin" | "moderator" | "viewer"
+  createdAt: Date
+  lastLogin?: Date
+  active: boolean
+  firebaseUid?: string
+}
+
+const COLLECTION_NAME = "adminUsers"
+
 export default function AdminUsersPage() {
-  const { adminUsers, addAdminUser, updateAdminUser, deleteAdminUser } = useStore()
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   const isAuthenticated = useAdminStore((state) => state.isAuthenticated)
 
@@ -50,11 +65,102 @@ export default function AdminUsersPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     role: "viewer" as "admin" | "moderator" | "viewer",
     active: true,
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showEditPassword, setShowEditPassword] = useState(false)
+  const [initializing, setInitializing] = useState(false)
 
-  const handleAddUser = () => {
+  // Initialize default admin user on mount if needed
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const initializeDefaultAdmin = async () => {
+      try {
+        // Check if admin user exists
+        const checkResponse = await fetch("/api/admin/init")
+        const checkResult = await checkResponse.json()
+        
+        if (!checkResult.exists) {
+          // Initialize default admin user
+          const initResponse = await fetch("/api/admin/init", {
+            method: "POST",
+          })
+          const initResult = await initResponse.json()
+          
+          if (initResponse.ok && initResult.success) {
+            // Reload users after initialization
+            const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
+            const querySnapshot = await getDocs(q)
+            const users: AdminUser[] = []
+            querySnapshot.forEach((docSnapshot) => {
+              const data = docSnapshot.data()
+              users.push({
+                id: docSnapshot.id,
+                name: data.name,
+                email: data.email,
+                role: data.role,
+                createdAt: data.createdAt?.toDate() || new Date(),
+                lastLogin: data.lastLogin?.toDate(),
+                active: data.active ?? true,
+                firebaseUid: data.firebaseUid,
+              })
+            })
+            setAdminUsers(users)
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing default admin:", error)
+      }
+    }
+
+    initializeDefaultAdmin()
+  }, [isAuthenticated])
+
+  // Load users from Firebase
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const loadUsers = async () => {
+      try {
+        setLoading(true)
+        const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
+        const querySnapshot = await getDocs(q)
+        const users: AdminUser[] = []
+        
+        querySnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data()
+          users.push({
+            id: docSnapshot.id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            lastLogin: data.lastLogin?.toDate(),
+            active: data.active ?? true,
+            firebaseUid: data.firebaseUid,
+          })
+        })
+        
+        setAdminUsers(users)
+      } catch (error) {
+        console.error("Error loading users:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load users. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUsers()
+  }, [isAuthenticated, toast])
+
+  const handleAddUser = async () => {
     if (!formData.name || !formData.email) {
       toast({
         title: "Error",
@@ -64,13 +170,51 @@ export default function AdminUsersPage() {
       return
     }
 
-    addAdminUser(formData)
-    toast({
-      title: "User Added",
-      description: "New admin user has been added successfully.",
-    })
-    setFormData({ name: "", email: "", role: "viewer", active: true })
-    setDialogOpen(false)
+    try {
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        active: formData.active,
+        createdAt: Timestamp.now(),
+      }
+
+      await addDoc(collection(db, COLLECTION_NAME), userData)
+      
+      toast({
+        title: "User Added",
+        description: "New admin user has been added successfully.",
+      })
+      
+      setFormData({ name: "", email: "", password: "", role: "viewer", active: true })
+      setDialogOpen(false)
+      
+      // Reload users
+      const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
+      const querySnapshot = await getDocs(q)
+      const users: AdminUser[] = []
+      querySnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data()
+        users.push({
+          id: docSnapshot.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          lastLogin: data.lastLogin?.toDate(),
+          active: data.active ?? true,
+          firebaseUid: data.firebaseUid,
+        })
+      })
+      setAdminUsers(users)
+    } catch (error) {
+      console.error("Error adding user:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add user. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleEditUser = (user: AdminUser) => {
@@ -78,32 +222,183 @@ export default function AdminUsersPage() {
     setFormData({
       name: user.name,
       email: user.email,
+      password: "", // Don't populate password for security
       role: user.role,
       active: user.active,
     })
+    setShowEditPassword(false)
     setEditDialogOpen(true)
   }
 
-  const handleUpdateUser = () => {
+  const handleUpdateUser = async () => {
     if (!selectedUser) return
 
-    updateAdminUser(selectedUser.id, formData)
-    toast({
-      title: "User Updated",
-      description: "User information has been updated successfully.",
-    })
-    setEditDialogOpen(false)
-    setSelectedUser(null)
-    setFormData({ name: "", email: "", role: "viewer", active: true })
+    if (!formData.name || !formData.email) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (formData.password && formData.password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Call API route to update user
+      const response = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: selectedUser.id,
+          name: formData.name,
+          email: formData.email,
+          password: formData.password || undefined, // Only send if provided
+          role: formData.role,
+          active: formData.active,
+          firebaseUid: selectedUser.firebaseUid,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update user")
+      }
+
+      toast({
+        title: "User Updated",
+        description: "User information has been updated successfully.",
+      })
+      
+      setEditDialogOpen(false)
+      setSelectedUser(null)
+      setFormData({ name: "", email: "", password: "", role: "viewer", active: true })
+      
+      // Reload users
+      const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
+      const querySnapshot = await getDocs(q)
+      const users: AdminUser[] = []
+      querySnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data()
+        users.push({
+          id: docSnapshot.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          lastLogin: data.lastLogin?.toDate(),
+          active: data.active ?? true,
+          firebaseUid: data.firebaseUid,
+        })
+      })
+      setAdminUsers(users)
+    } catch (error: any) {
+      console.error("Error updating user:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleDeleteUser = (id: string) => {
-    if (confirm("Are you sure you want to delete this user?")) {
-      deleteAdminUser(id)
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return
+
+    try {
+      await deleteDoc(doc(db, COLLECTION_NAME, id))
+      
       toast({
         title: "User Deleted",
         description: "User has been deleted successfully.",
       })
+      
+      // Reload users
+      const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
+      const querySnapshot = await getDocs(q)
+      const users: AdminUser[] = []
+      querySnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data()
+        users.push({
+          id: docSnapshot.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          lastLogin: data.lastLogin?.toDate(),
+          active: data.active ?? true,
+          firebaseUid: data.firebaseUid,
+        })
+      })
+      setAdminUsers(users)
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleInitializeAdmin = async () => {
+    setInitializing(true)
+    try {
+      const response = await fetch("/api/admin/init", {
+        method: "POST",
+      })
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        toast({
+          title: "Success",
+          description: result.message || "Default admin user initialized successfully.",
+        })
+        
+        // Reload users
+        const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
+        const querySnapshot = await getDocs(q)
+        const users: AdminUser[] = []
+        querySnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data()
+          users.push({
+            id: docSnapshot.id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            lastLogin: data.lastLogin?.toDate(),
+            active: data.active ?? true,
+            firebaseUid: data.firebaseUid,
+          })
+        })
+        setAdminUsers(users)
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to initialize admin user.",
+          variant: "destructive",
+        })
+      }
+    } catch (error: any) {
+      console.error("Error initializing admin:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initialize admin user.",
+        variant: "destructive",
+      })
+    } finally {
+      setInitializing(false)
     }
   }
 
@@ -118,6 +413,14 @@ export default function AdminUsersPage() {
 
   if (!isAuthenticated) return null
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">Loading users...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -128,13 +431,23 @@ export default function AdminUsersPage() {
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage admin users and permissions</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Plus className="h-4 w-4" />
-              Add User
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleInitializeAdmin}
+            disabled={initializing}
+            className="gap-2"
+          >
+            <Shield className="h-4 w-4" />
+            {initializing ? "Initializing..." : "Init Default Admin"}
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Plus className="h-4 w-4" />
+                Add User
+              </Button>
+            </DialogTrigger>
           <DialogContent className="bg-card border-border">
             <DialogHeader>
               <DialogTitle>Add New Admin User</DialogTitle>
@@ -163,6 +476,28 @@ export default function AdminUsersPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Enter password (min 6 characters)"
+                    className="bg-background border-border text-foreground pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <Eye className={`h-4 w-4 ${showPassword ? "text-primary" : "text-muted-foreground"}`} />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={formData.role}
@@ -184,6 +519,7 @@ export default function AdminUsersPage() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
       </div>
 
       {/* Search */}
@@ -297,6 +633,28 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="edit-password">Password (leave blank to keep current)</Label>
+              <div className="relative">
+                <Input
+                  id="edit-password"
+                  type={showEditPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter new password (min 6 characters)"
+                  className="bg-background border-border text-foreground pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowEditPassword(!showEditPassword)}
+                >
+                  <Eye className={`h-4 w-4 ${showEditPassword ? "text-primary" : "text-muted-foreground"}`} />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="edit-role">Role</Label>
               <Select
                 value={formData.role}
@@ -329,6 +687,5 @@ export default function AdminUsersPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
-

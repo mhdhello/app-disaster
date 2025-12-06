@@ -5,6 +5,7 @@ import { Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { StructuredData } from "@/components/structured-data"
+import { FirebaseProvider } from "@/components/firebase-provider"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -156,10 +157,12 @@ export default function RootLayout({
         className={`${inter.className} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <StructuredData />
-        {children}
-        <Toaster />
-        <Analytics />
+        <FirebaseProvider>
+          <StructuredData />
+          {children}
+          <Toaster />
+          <Analytics />
+        </FirebaseProvider>
       </body>
     </html>
   )

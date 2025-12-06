@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAdminStore } from "@/lib/admin-store"
 import { useToast } from "@/hooks/use-toast"
-import { Shield, Lock, AlertCircle } from "lucide-react"
+import { Shield, Lock, AlertCircle, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function AdminLoginPage() {
+  const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -35,10 +36,13 @@ export default function AdminLoginPage() {
     setError("")
     setIsLoading(true)
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    if (!name || !password) {
+      setError("Please enter both name and password")
+      setIsLoading(false)
+      return
+    }
 
-    const success = login(password)
+    const success = await login(name, password)
     
     if (success) {
       toast({
@@ -47,7 +51,7 @@ export default function AdminLoginPage() {
       })
       router.push("/admin")
     } else {
-      setError("Incorrect password. Please try again.")
+      setError("Invalid name or password. Please try again.")
       setPassword("")
     }
     
@@ -68,7 +72,7 @@ export default function AdminLoginPage() {
               </div>
               <CardTitle className="text-2xl font-bold text-foreground">Admin Login</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Enter your password to access the admin dashboard
+                Enter your name and password to access the admin dashboard
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -80,6 +84,26 @@ export default function AdminLoginPage() {
                   </Alert>
                 )}
                 
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-foreground">
+                    Name
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter admin name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="pl-10 bg-background border-border text-foreground"
+                      required
+                      disabled={isLoading}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-foreground">
                     Password
@@ -95,7 +119,6 @@ export default function AdminLoginPage() {
                       className="pl-10 bg-background border-border text-foreground"
                       required
                       disabled={isLoading}
-                      autoFocus
                     />
                   </div>
                 </div>
@@ -103,7 +126,7 @@ export default function AdminLoginPage() {
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={isLoading || !password}
+                  disabled={isLoading || !name || !password}
                 >
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
