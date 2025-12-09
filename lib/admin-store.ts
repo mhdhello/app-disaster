@@ -9,7 +9,7 @@ interface AdminState {
   checkAuth: () => void
 }
 
-const ADMIN_PASSWORD = "riseagain0976%" // Keep this password constant
+const ADMIN_PASSWORD = "riseagain0976%"
 const ADMIN_NAME = "AdminMaster" // Dummy admin name
 const AUTH_KEY = "admin-auth"
 const USER_KEY = "admin-user"

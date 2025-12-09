@@ -108,16 +108,37 @@ export interface AdminUser {
   active: boolean
 }
 
+export interface Task {
+  id: string
+  title: string
+  description?: string
+  taskType: string
+  priority: "low" | "medium" | "high" | "critical"
+  status: "pending" | "in-progress" | "completed" | "cancelled"
+  location?: string
+  coordinates?: { lat: number; lng: number }
+  province?: string
+  district?: string
+  assignedVolunteers: string[] // Array of volunteer IDs
+  createdAt: Date
+  updatedAt: Date
+  dueDate?: Date
+  completedAt?: Date
+}
+
 interface StoreState {
   damageReports: DamageReport[]
   donorOffers: DonorOffer[]
   volunteers: VolunteerRegistration[]
   adminUsers: AdminUser[]
+  tasks: Task[]
   isLoadingReports: boolean
   addDamageReport: (report: Omit<DamageReport, "id" | "timestamp" | "status" | "photoPaths">, photos?: FileList | null) => Promise<void>
   loadDamageReports: () => Promise<void>
   addDonorOffer: (offer: Omit<DonorOffer, "id" | "timestamp" | "status">) => void
   addVolunteer: (volunteer: Omit<VolunteerRegistration, "id" | "submittedAt" | "status">) => void
+  updateVolunteer: (id: string, updates: Partial<VolunteerRegistration>) => void
+  deleteVolunteer: (id: string) => void
   updateReportStatus: (id: string, status: DamageReport["status"]) => Promise<void>
   updateOfferStatus: (id: string, status: DonorOffer["status"]) => void
   verifyReport: (id: string, verifiedBy: string) => Promise<void>
@@ -125,6 +146,11 @@ interface StoreState {
   addAdminUser: (user: Omit<AdminUser, "id" | "createdAt">) => void
   updateAdminUser: (id: string, updates: Partial<AdminUser>) => void
   deleteAdminUser: (id: string) => void
+  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
+  updateTask: (id: string, updates: Partial<Task>) => void
+  deleteTask: (id: string) => void
+  assignVolunteerToTask: (taskId: string, volunteerId: string) => void
+  removeVolunteerFromTask: (taskId: string, volunteerId: string) => void
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -948,6 +974,16 @@ export const useStore = create<StoreState>((set, get) => ({
         },
       ],
     })),
+  updateVolunteer: (id, updates) =>
+    set((state) => ({
+      volunteers: state.volunteers.map((volunteer) =>
+        volunteer.id === id ? { ...volunteer, ...updates } : volunteer
+      ),
+    })),
+  deleteVolunteer: (id) =>
+    set((state) => ({
+      volunteers: state.volunteers.filter((volunteer) => volunteer.id !== id),
+    })),
   updateReportStatus: async (id, status) => {
     try {
       await updateDamageReportStatus(id, status)
@@ -997,6 +1033,40 @@ export const useStore = create<StoreState>((set, get) => ({
       active: true,
     },
   ],
+  tasks: [
+    {
+      id: "t1",
+      title: "Search and Rescue - Colombo District",
+      description: "Search and rescue operations in affected areas",
+      taskType: "Search & Rescue",
+      priority: "critical",
+      status: "in-progress",
+      location: "Colombo, Wellawatte",
+      coordinates: { lat: 6.8746, lng: 79.86 },
+      province: "Western",
+      district: "Colombo",
+      assignedVolunteers: ["v1"],
+      createdAt: new Date("2024-12-01T08:00:00"),
+      updatedAt: new Date("2024-12-01T08:00:00"),
+      dueDate: new Date("2024-12-02T18:00:00"),
+    },
+    {
+      id: "t2",
+      title: "Medical Support - Galle District",
+      description: "Medical assistance and first aid setup",
+      taskType: "Medical - Doctor",
+      priority: "high",
+      status: "pending",
+      location: "Galle City",
+      coordinates: { lat: 6.0535, lng: 80.221 },
+      province: "Southern",
+      district: "Galle",
+      assignedVolunteers: ["v2"],
+      createdAt: new Date("2024-12-01T09:00:00"),
+      updatedAt: new Date("2024-12-01T09:00:00"),
+      dueDate: new Date("2024-12-03T18:00:00"),
+    },
+  ],
   addAdminUser: (user) =>
     set((state) => ({
       adminUsers: [
@@ -1015,5 +1085,51 @@ export const useStore = create<StoreState>((set, get) => ({
   deleteAdminUser: (id) =>
     set((state) => ({
       adminUsers: state.adminUsers.filter((user) => user.id !== id),
+    })),
+  addTask: (task) =>
+    set((state) => ({
+      tasks: [
+        ...state.tasks,
+        {
+          ...task,
+          id: Date.now().toString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    })),
+  updateTask: (id, updates) =>
+    set((state) => ({
+      tasks: state.tasks.map((task) =>
+        task.id === id ? { ...task, ...updates, updatedAt: new Date() } : task
+      ),
+    })),
+  deleteTask: (id) =>
+    set((state) => ({
+      tasks: state.tasks.filter((task) => task.id !== id),
+    })),
+  assignVolunteerToTask: (taskId, volunteerId) =>
+    set((state) => ({
+      tasks: state.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              assignedVolunteers: [...new Set([...task.assignedVolunteers, volunteerId])],
+              updatedAt: new Date(),
+            }
+          : task
+      ),
+    })),
+  removeVolunteerFromTask: (taskId, volunteerId) =>
+    set((state) => ({
+      tasks: state.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              assignedVolunteers: task.assignedVolunteers.filter((id) => id !== volunteerId),
+              updatedAt: new Date(),
+            }
+          : task
+      ),
     })),
 }))

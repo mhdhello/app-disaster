@@ -28,6 +28,7 @@ import {
   Shield,
   LogOut,
   CheckCircle2,
+  ClipboardList,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -47,6 +48,16 @@ const adminMenuItems = [
     title: "Donor Offers",
     url: "/admin/offers",
     icon: Heart,
+  },
+  {
+    title: "Volunteers",
+    url: "/admin/volunteers",
+    icon: Users,
+  },
+  {
+    title: "Tasks",
+    url: "/admin/tasks",
+    icon: ClipboardList,
   },
   {
     title: "User Management",

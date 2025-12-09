@@ -28,18 +28,39 @@ import {
   Phone,
   User,
   Eye,
+  Baby,
+  AlertTriangle,
+  Truck,
+  Wifi,
+  DollarSign as FinancialIcon,
 } from "lucide-react"
 
 import { CleaningForm } from "@/components/forms/donor/cleaning-form"
-import { VolunteersForm } from "@/components/forms/donor/volunteers-form"
 import { FundsForm } from "@/components/forms/donor/funds-form"
 import { FurnitureForm } from "@/components/forms/donor/furniture-form"
+import { ClothingForm } from "@/components/forms/donor/clothing-form"
+import { HygieneForm } from "@/components/forms/donor/hygiene-form"
+import { ShelterForm } from "@/components/forms/donor/shelter-form"
+import { EducationForm } from "@/components/forms/donor/education-form"
+import { BabyChildForm } from "@/components/forms/donor/baby-child-form"
+import { RescueSafetyForm } from "@/components/forms/donor/rescue-safety-form"
+import { TransportationForm } from "@/components/forms/donor/transportation-form"
+import { TechnologyForm } from "@/components/forms/donor/technology-form"
+import { FinancialSupportForm } from "@/components/forms/donor/financial-support-form"
 
 const categories = [
   { id: "cleaning", label: "Cleaning Equipment", icon: Brush, description: "Shovels, brooms, pumps, pressure washers" },
-  { id: "volunteers", label: "Man-hours / Volunteers", icon: Users, description: "Offer your time and skills" },
   { id: "funds", label: "Funds Donation", icon: DollarSign, description: "Financial contributions" },
   { id: "furniture", label: "Furniture Donation", icon: Armchair, description: "Beds, tables, chairs, cupboards" },
+  { id: "clothing", label: "Clothing & Personal Items", icon: Users, description: "Clothes, blankets, towels, footwear" },
+  { id: "hygiene", label: "Hygiene & Sanitation Kits", icon: Droplets, description: "Soap, shampoo, toothpaste, sanitary pads, diapers" },
+  { id: "shelter", label: "Shelter & Housing Materials", icon: Armchair, description: "Tents, tarpaulins, sleeping bags, construction materials" },
+  { id: "education", label: "School & Education Support", icon: UtensilsCrossed, description: "Books, bags, stationery, uniforms, laptops, tablets" },
+  { id: "babyChild", label: "Baby & Child Care", icon: Baby, description: "Baby food, formula, diapers, clothes, bottles" },
+  { id: "rescueSafety", label: "Rescue & Safety Equipment", icon: AlertTriangle, description: "Life jackets, first aid, flashlights, batteries, tools, ropes" },
+  { id: "transportation", label: "Transportation Assistance", icon: Truck, description: "Vehicles, fuel, goods transport, volunteer drivers" },
+  { id: "technology", label: "Technology & Communication", icon: Wifi, description: "Power banks, chargers, radios, walkie-talkies, routers, SIM cards" },
+  { id: "financialSupport", label: "Financial & Special Support", icon: FinancialIcon, description: "Transport costs, accommodation funding, special needs equipment" },
 ]
 
 const formComponents: Record<
@@ -47,15 +68,22 @@ const formComponents: Record<
   React.FC<{ formData: Record<string, unknown>; onChange: (data: Record<string, unknown>) => void }>
 > = {
   cleaning: CleaningForm,
-  volunteers: VolunteersForm,
   funds: FundsForm,
   furniture: FurnitureForm,
+  clothing: ClothingForm,
+  hygiene: HygieneForm,
+  shelter: ShelterForm,
+  education: EducationForm,
+  babyChild: BabyChildForm,
+  rescueSafety: RescueSafetyForm,
+  transportation: TransportationForm,
+  technology: TechnologyForm,
+  financialSupport: FinancialSupportForm,
 }
 
 const categoryIcons: Record<string, React.ElementType> = {
   medical: Pill,
   cleaning: Brush,
-  volunteers: Users,
   funds: DollarSign,
   electricity: Zap,
   water: Droplets,

@@ -36,63 +36,89 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Find user by name in Firestore
-    const usersRef = adminDb.collection("adminUsers")
-    const snapshot = await usersRef.where("name", "==", name).limit(1).get()
-
-    if (snapshot.empty) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      )
-    }
-
-    const userDoc = snapshot.docs[0]
-    const userData = userDoc.data()
-
-    // Check if user is active
-    if (!userData.active) {
-      return NextResponse.json(
-        { error: "Account is inactive" },
-        { status: 401 }
-      )
-    }
-
-    // Verify password - check both bcrypt hash and plain text fallback for ADMIN_PASSWORD
+    // Dummy admin credentials for development
     const ADMIN_PASSWORD = "riseagain0976%"
-    let passwordValid = false
+    const ADMIN_NAME = "AdminMaster"
 
-    if (userData.passwordHash) {
-      // Verify against bcrypt hash
-      passwordValid = await bcrypt.compare(password, userData.passwordHash)
+    // Check against dummy admin first
+    if (name === ADMIN_NAME && password === ADMIN_PASSWORD) {
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: "admin-001",
+          name: ADMIN_NAME,
+          email: "admin@disaster.local",
+          role: "admin",
+        },
+      })
     }
 
-    // Fallback: if password matches ADMIN_PASSWORD directly (for backward compatibility)
-    if (!passwordValid && password === ADMIN_PASSWORD) {
-      passwordValid = true
-    }
+    // If not dummy admin, try Firestore (for production use)
+    try {
+      // Find user by name in Firestore
+      const usersRef = adminDb.collection("adminUsers")
+      const snapshot = await usersRef.where("name", "==", name).limit(1).get()
 
-    if (!passwordValid) {
+      if (snapshot.empty) {
+        return NextResponse.json(
+          { error: "Invalid credentials" },
+          { status: 401 }
+        )
+      }
+
+      const userDoc = snapshot.docs[0]
+      const userData = userDoc.data()
+
+      // Check if user is active
+      if (!userData.active) {
+        return NextResponse.json(
+          { error: "Account is inactive" },
+          { status: 401 }
+        )
+      }
+
+      // Verify password - check both bcrypt hash and plain text fallback for ADMIN_PASSWORD
+      let passwordValid = false
+
+      if (userData.passwordHash) {
+        // Verify against bcrypt hash
+        passwordValid = await bcrypt.compare(password, userData.passwordHash)
+      }
+
+      // Fallback: if password matches ADMIN_PASSWORD directly (for backward compatibility)
+      if (!passwordValid && password === ADMIN_PASSWORD) {
+        passwordValid = true
+      }
+
+      if (!passwordValid) {
+        return NextResponse.json(
+          { error: "Invalid credentials" },
+          { status: 401 }
+        )
+      }
+
+      // Update last login
+      await userDoc.ref.update({
+        lastLogin: new Date(),
+      })
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: userDoc.id,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+        },
+      })
+    } catch (dbError) {
+      console.error("Firestore error:", dbError)
+      // If Firestore fails, return error (don't fall back to dummy in production)
       return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
+        { error: "Authentication service unavailable" },
+        { status: 500 }
       )
     }
-
-    // Update last login
-    await userDoc.ref.update({
-      lastLogin: new Date(),
-    })
-
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: userDoc.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-      },
-    })
   } catch (error: any) {
     console.error("Error during login:", error)
     return NextResponse.json(

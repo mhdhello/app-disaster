@@ -28,7 +28,6 @@ const adminDb = getFirestore()
 
 const ADMIN_PASSWORD = "riseagain0976%" // Keep this password constant
 const ADMIN_NAME = "AdminMaster" // Dummy admin name
-const ADMIN_EMAIL = "adminmaster@floodrelief.lk" // Dummy email
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,50 +50,16 @@ export async function POST(request: NextRequest) {
     const saltRounds = 10
     const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, saltRounds)
 
-    // Create user in Firebase Auth
-    let firebaseUser
-    try {
-      firebaseUser = await adminAuth.createUser({
-        email: ADMIN_EMAIL,
-        password: ADMIN_PASSWORD,
-        displayName: ADMIN_NAME,
-        emailVerified: false,
-        disabled: false,
-      })
-    } catch (authError: any) {
-      // If user already exists in Auth, try to get it
-      if (authError.code === "auth/email-already-exists") {
-        try {
-          const existingUsers = await adminAuth.getUsersByEmail(ADMIN_EMAIL)
-          if (existingUsers.users.length > 0) {
-            firebaseUser = existingUsers.users[0]
-          } else {
-            throw authError
-          }
-        } catch (getError) {
-          console.error("Firebase Auth error:", authError)
-          return NextResponse.json(
-            { error: `Failed to create auth user: ${authError.message}` },
-            { status: 400 }
-          )
-        }
-      } else {
-        console.error("Firebase Auth error:", authError)
-        return NextResponse.json(
-          { error: `Failed to create auth user: ${authError.message}` },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Store user data in Firestore with hashed password
+    // Store user data in Firestore with bcrypt hash only.
+    // We avoid creating a Firebase Auth user here so the login endpoint
+    // can authenticate against the Firestore-stored hash consistently.
     const userData = {
       name: ADMIN_NAME,
-      email: ADMIN_EMAIL,
+      // No public email required for this default admin record
       passwordHash: hashedPassword, // Store bcrypt hash
       role: "admin",
       active: true,
-      firebaseUid: firebaseUser.uid,
+      firebaseUid: null,
       createdAt: FieldValue.serverTimestamp(),
     }
 
@@ -102,12 +67,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Default admin user created successfully",
+      message: "Default admin user created successfully (stored in Firestore)",
       user: {
         id: docRef.id,
         name: ADMIN_NAME,
-        email: ADMIN_EMAIL,
-        firebaseUid: firebaseUser.uid,
+        firebaseUid: null,
       },
     })
   } catch (error: any) {
