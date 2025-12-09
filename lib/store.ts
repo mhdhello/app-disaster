@@ -52,6 +52,16 @@ export interface VolunteerRegistration {
   skills?: string[]
   availability?: string
   preferredRole?: string
+  preferredRoleOther?: string
+  // New enhanced fields
+  yearsOfExperience?: number
+  medicalLicense?: string
+  certifications?: string
+  specialTraining?: string
+  equipmentAvailable?: string
+  dietaryRestrictions?: string
+  accessibilityNeeds?: string
+  // Team fields
   volunteerType?: "single" | "team"
   teamSize?: number
   groupLeaderName?: string

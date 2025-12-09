@@ -75,13 +75,25 @@ const initialFormState: Record<string, unknown> = {
   skills: "",
   availability: "",
   preferredRole: "",
+  preferredRoleOther: "",
+  // New fields for enhanced profile
+  medicalLicense: "",
+  certifications: "",
+  yearsOfExperience: "",
+  equipmentAvailable: "",
+  dietaryRestrictions: "",
+  accessibilityNeeds: "",
+  specialTraining: "",
+  // Team fields
   groupLeaderName: "",
   groupLeaderPhone: "",
   groupLeaderIsMember: false,
   groupLeaderMemberIndex: undefined,
+  // Images
   nicFrontImage: undefined,
   nicBackImage: undefined,
   locationData: undefined,
+  // Responsible persons
   responsiblePersons: [
     {
       name: "",
@@ -106,42 +118,53 @@ export default function VolunteersPage() {
   }, [selectedProvince])
 
   const guardianRoles = ["Father", "Mother", "Spouse", "Child", "Other"]
-  const roleOptions = [
-    "Search & Rescue",
-    "Medical - Doctor",
-    "Medical - Nurse",
-    "Medical - First Aid",
-    "Logistics / Supply",
-    "Cooking / Catering",
-    "Child Care",
-    "Elderly Care",
-    "Psychosocial Support",
-    "Shelter Management",
-    "Cleaning / Sanitation",
-    "Carpentry",
-    "Masonry",
-    "Plumbing",
-    "Electrical",
-    "Mechanical",
-    "Driving - Light Vehicles",
-    "Driving - Heavy Vehicles",
-    "Boat Operations",
-    "IT / Communications",
-    "Mapping / GIS",
-    "Translation",
-    "Administration",
-    "Security",
-    "Water Purification",
-    "Food Distribution",
-    "Fundraising",
-    "Volunteer Coordination",
-    "Warehouse Management",
-    "Civil Engineering",
-    "Survey / Damage Assessment",
-    "Agriculture Support",
-    "Livestock Support",
-    "Other",
-  ]
+
+  const roleCategories = {
+    "🚨 Life-Saving Frontline Roles": [
+      "Search & Rescue",
+      "Medical - Doctor",
+      "Medical - Nurse / Paramedic",
+      "Medical - First Aid",
+      "Psychosocial Support / Trauma Counselor",
+      "Child Protection / Child Care",
+      "Elderly & Disabled Care",
+    ],
+    "🏠 Survival & Shelter Operations": [
+      "Shelter Management",
+      "Cleaning & Sanitation",
+      "Water Purification",
+      "Food Distribution",
+      "Cooking / Catering",
+    ],
+    "🚚 Logistics & Ground Operations": [
+      "Logistics / Supply Chain",
+      "Warehouse Management",
+      "Driving - Light Vehicles",
+      "Driving - Heavy Vehicles",
+      "Boat Operations",
+      "Volunteer Coordinator",
+      "Security",
+    ],
+    "🛠️ Recovery & Infrastructure Repair": [
+      "Electrician",
+      "Plumber",
+      "Carpenter",
+      "Mason",
+      "Mechanical Technician",
+      "Civil Engineer",
+      "Survey / Damage Assessment",
+    ],
+    "🗺️ Tech, Data & Communication": [
+      "IT / Communications",
+      "Mapping / GIS",
+      "Data Entry & Reporting",
+      "Translation / Language Support",
+    ],
+    "Other": ["Other"],
+  }
+
+  // Flatten for validation
+  const roleOptions = Object.values(roleCategories).flat()
 
   const volunteerType = (formData.volunteerType as string) || "single"
   const teamSize = Number(formData.teamSize || 0)
@@ -306,19 +329,19 @@ export default function VolunteersPage() {
     const skills =
       typeof formData.skills === "string"
         ? (formData.skills as string)
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
         : []
 
     const normalizedResponsible =
       volunteerType === "single"
         ? (responsiblePersons as Array<any>)?.map((rp) => ({
-            name: rp.name as string,
-            phone: rp.phone as string,
-            relation: rp.relation as string,
-            relationOther: rp.relation === "Other" ? (rp.relationOther as string) : undefined,
-          })) || []
+          name: rp.name as string,
+          phone: rp.phone as string,
+          relation: rp.relation as string,
+          relationOther: rp.relation === "Other" ? (rp.relationOther as string) : undefined,
+        })) || []
         : undefined
 
     const payload = {
@@ -335,6 +358,14 @@ export default function VolunteersPage() {
       skills,
       availability: formData.availability as string,
       preferredRole: formData.preferredRole as string,
+      // New enhanced fields
+      yearsOfExperience: formData.yearsOfExperience ? Number(formData.yearsOfExperience) : undefined,
+      medicalLicense: (formData.medicalLicense as string) || undefined,
+      certifications: (formData.certifications as string) || undefined,
+      specialTraining: (formData.specialTraining as string) || undefined,
+      equipmentAvailable: (formData.equipmentAvailable as string) || undefined,
+      dietaryRestrictions: (formData.dietaryRestrictions as string) || undefined,
+      accessibilityNeeds: (formData.accessibilityNeeds as string) || undefined,
       volunteerType: volunteerType as "single" | "team",
       responsiblePerson: normalizedResponsible ? normalizedResponsible[0] : undefined,
       responsiblePersons: normalizedResponsible,
@@ -618,11 +649,15 @@ export default function VolunteersPage() {
                         value={(formData.preferredRole as string) || ""}
                         onChange={(e) => handleInputChange("preferredRole", e.target.value)}
                       >
-                        <option value="">Select a role</option>
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
+                        <option value="">Select a role category</option>
+                        {Object.entries(roleCategories).map(([category, roles]) => (
+                          <optgroup key={category} label={category}>
+                            {roles.map((role) => (
+                              <option key={role} value={role}>
+                                {role}
+                              </option>
+                            ))}
+                          </optgroup>
                         ))}
                       </select>
                       {formData.preferredRole === "Other" && (
@@ -644,17 +679,63 @@ export default function VolunteersPage() {
                         onChange={(e) => handleInputChange("skills", e.target.value)}
                       />
                     </div>
+                  </div>
 
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="availability">Availability</Label>
-                      <Textarea
-                        id="availability"
-                        placeholder="Share your availability and schedule"
-                        value={(formData.availability as string) || ""}
-                        onChange={(e) => handleInputChange("availability", e.target.value)}
-                        rows={3}
-                      />
+                  {/* Enhanced Profile Fields */}
+                  <div className="space-y-4">
+                    <div className="rounded-md bg-muted/30 border border-border p-4">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">Professional Details (Optional)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                        <div className="space-y-2">
+                          <Label htmlFor="yearsOfExperience">Years of Experience</Label>
+                          <Input
+                            id="yearsOfExperience"
+                            type="number"
+                            min="0"
+                            max="70"
+                            placeholder="e.g. 5"
+                            value={(formData.yearsOfExperience as string) || ""}
+                            onChange={(e) => handleInputChange("yearsOfExperience", e.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="medicalLicense">License / Certification Number (if applicable)</Label>
+                          <Input
+                            id="medicalLicense"
+                            placeholder="e.g. Medical License, HESED Number"
+                            value={(formData.medicalLicense as string) || ""}
+                            onChange={(e) => handleInputChange("medicalLicense", e.target.value)}
+                          />
+                        </div>
+                      </div>
                     </div>
+
+                    <div className="rounded-md bg-muted/30 border border-border p-4">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">Operational Requirements (Optional)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                        <div className="space-y-2">
+                          <Label htmlFor="equipmentAvailable">Equipment/Resources Available</Label>
+                          <Input
+                            id="equipmentAvailable"
+                            placeholder="e.g. Vehicle, boat, generator, medical kit"
+                            value={(formData.equipmentAvailable as string) || ""}
+                            onChange={(e) => handleInputChange("equipmentAvailable", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="availability">Availability & Schedule</Label>
+                    <Textarea
+                      id="availability"
+                      placeholder="Share your availability - days per week, hours per day, any blackout dates"
+                      value={(formData.availability as string) || ""}
+                      onChange={(e) => handleInputChange("availability", e.target.value)}
+                      rows={3}
+                    />
                   </div>
 
                   {/* Responsible persons (single only) */}
@@ -1028,72 +1109,134 @@ export default function VolunteersPage() {
             </DialogTitle>
           </DialogHeader>
           {selectedVolunteer && (
-            <div className="space-y-3 text-sm">
+            <div className="space-y-4 text-sm max-h-[70vh] overflow-y-auto">
               <div className="flex items-center gap-2">
                 <UserCircle2 className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-foreground">{selectedVolunteer.fullName}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">Email</p>
-                  <p>{selectedVolunteer.email}</p>
-                </div>
-                {selectedVolunteer.phone && (
+
+              {/* Basic Information */}
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Basic Information</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <p className="text-muted-foreground text-xs">Phone</p>
-                    <p>{selectedVolunteer.phone}</p>
+                    <p className="text-muted-foreground text-xs">Email</p>
+                    <p>{selectedVolunteer.email}</p>
+                  </div>
+                  {selectedVolunteer.phone && (
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground text-xs">Phone</p>
+                      <p>{selectedVolunteer.phone}</p>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">NIC</p>
+                    <p>{selectedVolunteer.nic}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">District / Province</p>
+                    <p>
+                      {selectedVolunteer.district}, {selectedVolunteer.province}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">Status</p>
+                    <Badge className={cn("w-fit", statusStyles[selectedVolunteer.status])}>
+                      {selectedVolunteer.status}
+                    </Badge>
+                  </div>
+                  {selectedVolunteer.location && (
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground text-xs">Location</p>
+                      <p className="line-clamp-2">{selectedVolunteer.location}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Role & Skills */}
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Role & Skills</p>
+                {selectedVolunteer.preferredRole && (
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">Preferred Role</p>
+                    <p className="font-medium">{selectedVolunteer.preferredRole}</p>
                   </div>
                 )}
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">NIC</p>
-                  <p>{selectedVolunteer.nic}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">District / Province</p>
-                  <p>
-                    {selectedVolunteer.district}, {selectedVolunteer.province}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">Status</p>
-                  <Badge className={cn("w-fit", statusStyles[selectedVolunteer.status])}>
-                    {selectedVolunteer.status}
-                  </Badge>
-                </div>
-                {selectedVolunteer.location && (
+                {selectedVolunteer.skills && selectedVolunteer.skills.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-muted-foreground text-xs">Location</p>
-                    <p className="line-clamp-2">{selectedVolunteer.location}</p>
+                    <p className="text-muted-foreground text-xs">Skills</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedVolunteer.skills.map((skill) => (
+                        <Badge key={skill} variant="secondary" className="text-[11px]">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-              {selectedVolunteer.skills && selectedVolunteer.skills.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">Skills</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedVolunteer.skills.map((skill) => (
-                      <Badge key={skill} variant="secondary" className="text-[11px]">
-                        {skill}
-                      </Badge>
-                    ))}
+
+              {/* Professional Details (if available) */}
+              {(selectedVolunteer.yearsOfExperience ||
+                selectedVolunteer.medicalLicense ||
+                selectedVolunteer.certifications ||
+                selectedVolunteer.specialTraining) && (
+                  <div className="space-y-3 border-t pt-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Professional Details</p>
+                    {selectedVolunteer.yearsOfExperience && (
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground text-xs">Years of Experience</p>
+                        <p>{selectedVolunteer.yearsOfExperience} years</p>
+                      </div>
+                    )}
+                    {selectedVolunteer.medicalLicense && (
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground text-xs">License / Certification</p>
+                        <p>{selectedVolunteer.medicalLicense}</p>
+                      </div>
+                    )}
+                    {selectedVolunteer.certifications && (
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground text-xs">Certifications</p>
+                        <p className="whitespace-pre-wrap">{selectedVolunteer.certifications}</p>
+                      </div>
+                    )}
+                    {selectedVolunteer.specialTraining && (
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground text-xs">Special Training</p>
+                        <p className="whitespace-pre-wrap">{selectedVolunteer.specialTraining}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
+
+              {/* Operational Requirements (if available) */}
+              {(selectedVolunteer.equipmentAvailable ||
+                selectedVolunteer.dietaryRestrictions ||
+                selectedVolunteer.accessibilityNeeds) && (
+                  <div className="space-y-3 border-t pt-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Operational Info</p>
+                    {selectedVolunteer.equipmentAvailable && (
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground text-xs">Equipment Available</p>
+                        <p>{selectedVolunteer.equipmentAvailable}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* Availability */}
               {selectedVolunteer.availability && (
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">Availability</p>
-                  <p>{selectedVolunteer.availability}</p>
+                <div className="space-y-3 border-t pt-3">
+                  <p className="text-muted-foreground text-xs">Availability & Schedule</p>
+                  <p className="whitespace-pre-wrap">{selectedVolunteer.availability}</p>
                 </div>
               )}
-              {selectedVolunteer.preferredRole && (
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">Preferred Role</p>
-                  <p>{selectedVolunteer.preferredRole}</p>
-                </div>
-              )}
-              <div className="space-y-1">
+
+              <div className="space-y-1 border-t pt-3">
                 <p className="text-muted-foreground text-xs">Submitted</p>
-                <p>{selectedVolunteer.submittedAt.toLocaleString()}</p>
+                <p className="text-xs">{selectedVolunteer.submittedAt.toLocaleString()}</p>
               </div>
             </div>
           )}

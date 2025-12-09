@@ -14,6 +14,51 @@ interface LocationPickerProps {
   required?: boolean
 }
 
+// Cache for reverse geocoding to avoid repeated API calls
+const reverseGeocodingCache = new Map<string, string>()
+
+const SRI_LANKA_BOUNDS = {
+  minLat: 5.9,
+  maxLat: 9.8,
+  minLng: 79.7,
+  maxLng: 81.9,
+}
+
+const isWithinSriLanka = (lat: number, lng: number) => {
+  return lat >= SRI_LANKA_BOUNDS.minLat && lat <= SRI_LANKA_BOUNDS.maxLat &&
+         lng >= SRI_LANKA_BOUNDS.minLng && lng <= SRI_LANKA_BOUNDS.maxLng
+}
+
+const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+  const cacheKey = `${lat.toFixed(5)},${lng.toFixed(5)}`
+  
+  // Check cache first
+  if (reverseGeocodingCache.has(cacheKey)) {
+    return reverseGeocodingCache.get(cacheKey)!
+  }
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+      { signal: controller.signal }
+    )
+    clearTimeout(timeoutId)
+
+    if (!response.ok) throw new Error("Reverse geocoding failed")
+    const data = await response.json()
+    const address = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    
+    // Cache the result
+    reverseGeocodingCache.set(cacheKey, address)
+    return address
+  } catch {
+    return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+  }
+}
+
 export function LocationPicker({ value, onChange, label = "Location", required }: LocationPickerProps) {
   const [isLocating, setIsLocating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -22,10 +67,13 @@ export function LocationPicker({ value, onChange, label = "Location", required }
   const [searchResults, setSearchResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([])
   const watchIdRef = useRef<number | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const locationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMountedRef = useRef(true)
 
-  // Cleanup geolocation watch on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false
       if (watchIdRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current)
         watchIdRef.current = null
@@ -33,10 +81,13 @@ export function LocationPicker({ value, onChange, label = "Location", required }
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current)
       }
+      if (locationTimeoutRef.current) {
+        clearTimeout(locationTimeoutRef.current)
+      }
     }
   }, [])
 
-  const getCurrentLocation = () => {
+  const getCurrentLocation = async () => {
     setIsLocating(true)
     setError(null)
 
@@ -52,88 +103,77 @@ export function LocationPicker({ value, onChange, label = "Location", required }
       watchIdRef.current = null
     }
 
-    const geolocationOptions: PositionOptions = {
-      enableHighAccuracy: true,
-      timeout: 10000, // 10 seconds timeout
-      maximumAge: 5000, // Accept positions up to 5 seconds old
-    }
-
-    // Target accuracy threshold (in meters) - accept positions with accuracy better than 50m for faster results
-    const TARGET_ACCURACY = 50
-    const MAX_WATCH_TIME = 10000 // Maximum time to watch (10 seconds)
+    let hasReturned = false
     const startTime = Date.now()
 
-    // Sri Lanka bounds
-    const SRI_LANKA_BOUNDS = {
-      minLat: 5.9,
-      maxLat: 9.8,
-      minLng: 79.7,
-      maxLng: 81.9,
-    }
+    // Aggressive timeout strategy - accept location as soon as we have it with reasonable accuracy
+    const ACCURACY_THRESHOLD_FAST = 30 // Accept within 30m for instant response
+    const ACCURACY_THRESHOLD_GOOD = 50 // Accept within 50m 
+    const ACCURACY_THRESHOLD_ACCEPTABLE = 100 // Accept within 100m as fallback
+    const MAX_WAIT_FAST = 3000 // 3 seconds for good accuracy
+    const MAX_WAIT_ACCEPTABLE = 10000 // 10 seconds max total wait
 
-    const isWithinSriLanka = (lat: number, lng: number) => {
-      return lat >= SRI_LANKA_BOUNDS.minLat && lat <= SRI_LANKA_BOUNDS.maxLat &&
-             lng >= SRI_LANKA_BOUNDS.minLng && lng <= SRI_LANKA_BOUNDS.maxLng
+    const returnLocation = async (latitude: number, longitude: number, accuracy: number) => {
+      if (hasReturned || !isMountedRef.current) return
+      hasReturned = true
+
+      // Clear watch and timeouts
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
+      }
+      if (locationTimeoutRef.current) {
+        clearTimeout(locationTimeoutRef.current)
+        locationTimeoutRef.current = null
+      }
+
+      // Clamp to Sri Lanka bounds
+      const clampedLat = Math.max(SRI_LANKA_BOUNDS.minLat, Math.min(SRI_LANKA_BOUNDS.maxLat, latitude))
+      const clampedLng = Math.max(SRI_LANKA_BOUNDS.minLng, Math.min(SRI_LANKA_BOUNDS.maxLng, longitude))
+
+      // Get address in parallel
+      const address = await reverseGeocode(clampedLat, clampedLng)
+
+      if (isMountedRef.current) {
+        onChange({
+          lat: clampedLat,
+          lng: clampedLng,
+          address: address,
+        })
+        setIsLocating(false)
+      }
     }
 
     const processPosition = async (position: GeolocationPosition) => {
+      if (hasReturned) return
+
       const { latitude, longitude, accuracy } = position.coords
-
-      // Check if location is within Sri Lanka
-      if (!isWithinSriLanka(latitude, longitude)) {
-        setError("Your location is outside Sri Lanka. Please select a location on the map.")
-        setIsLocating(false)
-        if (watchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(watchIdRef.current)
-          watchIdRef.current = null
-        }
-        return
-      }
-
-      // Check if we have good accuracy or if we've been waiting too long
       const elapsed = Date.now() - startTime
-      const hasGoodAccuracy = accuracy <= TARGET_ACCURACY
-      const timeExceeded = elapsed >= MAX_WATCH_TIME
 
-      // If we have good accuracy or time exceeded, use this position
-      if (hasGoodAccuracy || timeExceeded) {
-        // Clear watch if active
-        if (watchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(watchIdRef.current)
-          watchIdRef.current = null
-        }
+      // Always accept positions from Sri Lanka immediately
+      if (isWithinSriLanka(latitude, longitude)) {
+        // Accept position based on accuracy and time elapsed
+        const hasExcellentAccuracy = accuracy <= ACCURACY_THRESHOLD_FAST
+        const hasGoodAccuracy = accuracy <= ACCURACY_THRESHOLD_GOOD
+        const hasAcceptableAccuracy = accuracy <= ACCURACY_THRESHOLD_ACCEPTABLE
+        const timeExceeded = elapsed >= MAX_WAIT_ACCEPTABLE
+        const goodTimeElapsed = elapsed >= MAX_WAIT_FAST
 
-        // Reverse geocoding to get address
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-          )
-          const data = await response.json()
-          const locationData = {
-            lat: latitude,
-            lng: longitude,
-            address: data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-          }
-          // Use setTimeout to ensure state update happens after geolocation completes
-          setTimeout(() => {
-            onChange(locationData)
-          }, 100)
-        } catch {
-          const locationData = {
-            lat: latitude,
-            lng: longitude,
-            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-          }
-          setTimeout(() => {
-            onChange(locationData)
-          }, 100)
+        if (hasExcellentAccuracy || (hasGoodAccuracy && goodTimeElapsed) || timeExceeded) {
+          await returnLocation(latitude, longitude, accuracy)
         }
-        setIsLocating(false)
+      } else {
+        // Location outside Sri Lanka - keep waiting or timeout
+        if (elapsed > MAX_WAIT_ACCEPTABLE) {
+          // Give up and use the position anyway (clamped)
+          await returnLocation(latitude, longitude, accuracy)
+        }
       }
-      // Otherwise, continue watching for better accuracy
     }
 
-    const handleError = (err: GeolocationPositionError) => {
+    const handleError = async (err: GeolocationPositionError) => {
+      if (hasReturned) return
+
       // Clear watch if active
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current)
@@ -141,39 +181,57 @@ export function LocationPicker({ value, onChange, label = "Location", required }
       }
 
       let errorMessage = "Unable to retrieve your location. Please select on the map."
-      if (err.code === err.TIMEOUT) {
-        errorMessage = "Location request timed out. Please try again or select on the map."
-      } else if (err.code === err.PERMISSION_DENIED) {
-        errorMessage = "Location permission denied. Please enable location access and try again."
+      if (err.code === err.PERMISSION_DENIED) {
+        errorMessage = "Location permission denied. Please enable location access in browser settings."
+      } else if (err.code === err.TIMEOUT) {
+        errorMessage = "Location request timed out. Please select on the map or try again."
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        errorMessage = "Location information unavailable. Please select on the map."
       }
 
-      setError(errorMessage)
-      setIsLocating(false)
+      if (isMountedRef.current) {
+        setError(errorMessage)
+        setIsLocating(false)
+      }
     }
 
-    // First, try getCurrentPosition for immediate result
+    // Set absolute timeout fallback
+    locationTimeoutRef.current = setTimeout(() => {
+      if (!hasReturned) {
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current)
+          watchIdRef.current = null
+        }
+        if (isMountedRef.current) {
+          setError("Location detection timed out. Please select on the map.")
+          setIsLocating(false)
+        }
+      }
+    }, MAX_WAIT_ACCEPTABLE + 1000)
+
+    // Use less aggressive options - let browser use cached positions if available and recent
+    const geolocationOptions: PositionOptions = {
+      enableHighAccuracy: true,
+      timeout: MAX_WAIT_ACCEPTABLE,
+      maximumAge: 60000, // Use cached position if less than 1 minute old
+    }
+
+    // Try getCurrentPosition first with lower timeout
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { accuracy } = position.coords
-        // If we already have good accuracy, use it immediately
-        if (accuracy <= TARGET_ACCURACY) {
-          processPosition(position)
-        } else {
-          // Otherwise, start watching for better accuracy
+      processPosition,
+      (err) => {
+        // If getCurrentPosition fails, try watchPosition as fallback
+        if (!hasReturned && isMountedRef.current) {
           watchIdRef.current = navigator.geolocation.watchPosition(
             processPosition,
             handleError,
-            geolocationOptions,
+            {
+              enableHighAccuracy: true,
+              timeout: MAX_WAIT_ACCEPTABLE,
+              maximumAge: 60000,
+            },
           )
         }
-      },
-      (err) => {
-        // If getCurrentPosition fails, try watchPosition as fallback
-        watchIdRef.current = navigator.geolocation.watchPosition(
-          processPosition,
-          handleError,
-          geolocationOptions,
-        )
       },
       geolocationOptions,
     )
@@ -183,24 +241,15 @@ export function LocationPicker({ value, onChange, label = "Location", required }
     setSearchResults([])
     
     // Ensure coordinates are within Sri Lanka bounds
-    const clampedLat = Math.max(5.9, Math.min(9.8, lat))
-    const clampedLng = Math.max(79.7, Math.min(81.9, lng))
+    const clampedLat = Math.max(SRI_LANKA_BOUNDS.minLat, Math.min(SRI_LANKA_BOUNDS.maxLat, lat))
+    const clampedLng = Math.max(SRI_LANKA_BOUNDS.minLng, Math.min(SRI_LANKA_BOUNDS.maxLng, lng))
     
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${clampedLat}&lon=${clampedLng}`)
-      const data = await response.json()
-      onChange({
-        lat: clampedLat,
-        lng: clampedLng,
-        address: data.display_name || `${clampedLat.toFixed(6)}, ${clampedLng.toFixed(6)}`,
-      })
-    } catch {
-      onChange({
-        lat: clampedLat,
-        lng: clampedLng,
-        address: `${clampedLat.toFixed(6)}, ${clampedLng.toFixed(6)}`,
-      })
-    }
+    const address = await reverseGeocode(clampedLat, clampedLng)
+    onChange({
+      lat: clampedLat,
+      lng: clampedLng,
+      address: address,
+    })
   }
 
   const handleSearch = async (query: string) => {
@@ -212,24 +261,37 @@ export function LocationPicker({ value, onChange, label = "Location", required }
     setIsSearching(true)
     try {
       // Sri Lanka bounding box: West, South, East, North
-      // Approximate bounds: 79.7°E, 5.9°N, 81.9°E, 9.8°N
       const sriLankaBounds = "79.7,5.9,81.9,9.8"
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&viewbox=${sriLankaBounds}&bounded=1&countrycodes=lk`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&viewbox=${sriLankaBounds}&bounded=1&countrycodes=lk`,
+        { signal: controller.signal }
       )
+      clearTimeout(timeoutId)
+
+      if (!response.ok) throw new Error("Search failed")
       const data = await response.json()
-      setSearchResults(
-        data.map((item: any) => ({
-          lat: parseFloat(item.lat),
-          lng: parseFloat(item.lon),
-          display_name: item.display_name,
-        }))
-      )
+      
+      if (isMountedRef.current) {
+        setSearchResults(
+          data.map((item: any) => ({
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon),
+            display_name: item.display_name,
+          }))
+        )
+      }
     } catch (error) {
-      setError("Search failed. Please try again.")
-      setSearchResults([])
+      if (isMountedRef.current) {
+        setError("Search failed. Please try again.")
+        setSearchResults([])
+      }
     } finally {
-      setIsSearching(false)
+      if (isMountedRef.current) {
+        setIsSearching(false)
+      }
     }
   }
 
@@ -245,16 +307,16 @@ export function LocationPicker({ value, onChange, label = "Location", required }
     if (value.trim()) {
       searchTimeoutRef.current = setTimeout(() => {
         handleSearch(value)
-      }, 500)
+      }, 300) // Reduced from 500ms for faster search
     } else {
       setSearchResults([])
     }
   }
 
-  const handleSelectSearchResult = (result: { lat: number; lng: number; display_name: string }) => {
+  const handleSelectSearchResult = async (result: { lat: number; lng: number; display_name: string }) => {
     // Ensure coordinates are within Sri Lanka bounds
-    const clampedLat = Math.max(5.9, Math.min(9.8, result.lat))
-    const clampedLng = Math.max(79.7, Math.min(81.9, result.lng))
+    const clampedLat = Math.max(SRI_LANKA_BOUNDS.minLat, Math.min(SRI_LANKA_BOUNDS.maxLat, result.lat))
+    const clampedLng = Math.max(SRI_LANKA_BOUNDS.minLng, Math.min(SRI_LANKA_BOUNDS.maxLng, result.lng))
     
     onChange({
       lat: clampedLat,
